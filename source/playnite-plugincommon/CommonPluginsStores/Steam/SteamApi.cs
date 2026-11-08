@@ -1225,12 +1225,16 @@ namespace CommonPluginsStores.Steam
                 gameAchievements = steamAchievements?.Select(x => new GameAchievement
                 {
                     Id = x.InternalName,
-                    Name = x.LocalizedName.Trim(),
-                    Description = x.LocalizedDesc.Trim(),
+                    // Steam omits localized_name/localized_desc for some entries; a plain .Trim()
+                    // threw a NullReferenceException and killed the whole manual import/search.
+                    Name = (x.LocalizedName ?? x.InternalName)?.Trim() ?? string.Empty,
+                    Description = x.LocalizedDesc?.Trim() ?? string.Empty,
                     UrlUnlocked = x.Icon,
                     UrlLocked = x.IconGray,
                     DateUnlocked = default,
-                    Percent = float.Parse(x.PlayerPercentUnlocked?.Replace(".", CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator) ?? "100"),
+                    Percent = float.TryParse(
+                        x.PlayerPercentUnlocked?.Replace(".", CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator),
+                        NumberStyles.Float, CultureInfo.CurrentCulture, out float percent) ? percent : 100f,
                     IsHidden = x.Hidden
                 }).ToObservable();
             }
