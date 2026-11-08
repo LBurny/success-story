@@ -505,6 +505,17 @@ namespace SuccessStory.Clients
             return SteamApi.IsConfigured();
         }
 
+        /// <summary>
+        /// Indicates whether Steam achievements are enabled in the plugin settings.
+        /// Without this override the base class answers false, and
+        /// SuccessStoryDatabase.VerifToAddOrShow() skips every Steam game.
+        /// </summary>
+        /// <returns>True if enabled, otherwise false.</returns>
+        public override bool EnabledInSettings()
+        {
+            return PluginDatabase.PluginSettings.Settings.EnableSteam;
+        }
+
         #endregion
 
         /// <summary>
