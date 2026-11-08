@@ -13,7 +13,7 @@
     
     <!-- MainView -->
 
-    <sys:String x:Key="LOCSuccessStory">功成名就-SuccessStory</sys:String>
+    <sys:String x:Key="LOCSuccessStory">SuccessStory</sys:String>
     <sys:String x:Key="LOCSuccessStoryAchievements">成就</sys:String>
     <sys:String x:Key="LOCSuccessStoryRetroAchievements">RetroAchievements</sys:String>
 
@@ -28,19 +28,19 @@
 
     <sys:String x:Key="LOCSuccessStoryNotificationsSteamPrivate">未公开的Steam个人资料</sys:String>
     <sys:String x:Key="LOCSuccessStoryNotificationsSteamGamePrivate" xml:space="preserve">Steam 游戏 “{0}” 未设置为公开 请在插件设置中勾选“{1}”</sys:String>
-    <sys:String x:Key="LOCSuccessStoryNotificationsSteamDisabled">Steam 已在功成名就中启用，但其库扩展在 Playnite 中禁用</sys:String>
+    <sys:String x:Key="LOCSuccessStoryNotificationsSteamDisabled">Steam 已在 SuccessStory 中启用，但其库扩展在 Playnite 中禁用</sys:String>
     <sys:String x:Key="LOCSuccessStoryNotificationsSteamBadConfig">未在设置中正确配置 Steam</sys:String>
     <sys:String x:Key="LOCSuccessStoryNotificationsSteamBadConfig1">未配置 Steam 设置和/或 API 密钥</sys:String>
     <sys:String x:Key="LOCSuccessStoryNotificationsSteamBadConfig2">未找到Steam用户</sys:String>
     <sys:String x:Key="LOCSuccessStoryNotificationsSteamNoAuthenticate">Steam用户未验证</sys:String>
-    <sys:String x:Key="LOCSuccessStoryNotificationsGogDisabled">GOG 已在功成名就中启用，但其库扩展在 Playnite 中禁用</sys:String>
+    <sys:String x:Key="LOCSuccessStoryNotificationsGogDisabled">GOG 已在 SuccessStory 中启用，但其库扩展在 Playnite 中禁用</sys:String>
     <sys:String x:Key="LOCSuccessStoryNotificationsGogNoAuthenticate">GOG 用户未验证</sys:String>
     <sys:String x:Key="LOCSuccessStoryNotificationsGogBadConfig">未在设置中正确配置 GOG</sys:String>
-    <sys:String x:Key="LOCSuccessStoryNotificationsPsnDisabled">PSN 已在功成名就中启用，但其库扩展在 Playnite 中禁用</sys:String>
+    <sys:String x:Key="LOCSuccessStoryNotificationsPsnDisabled">PSN 已在 SuccessStory 中启用，但其库扩展在 Playnite 中禁用</sys:String>
     <sys:String x:Key="LOCSuccessStoryNotificationsPsnNoAuthenticate">PSN 用户未验证</sys:String>
-    <sys:String x:Key="LOCSuccessStoryNotificationsEaDisabled">EA 已在功成名就中启用，但其库扩展未在 Playnite 中启用</sys:String>
+    <sys:String x:Key="LOCSuccessStoryNotificationsEaDisabled">EA 已在 SuccessStory 中启用，但其库扩展未在 Playnite 中启用</sys:String>
     <sys:String x:Key="LOCSuccessStoryNotificationsEaNoAuthenticate">EA 用户未验证</sys:String>
-    <sys:String x:Key="LOCSuccessStoryNotificationsXboxDisabled">Xbox 已在功成名就中启用，但其库扩展未在 Playnite 中启用</sys:String>
+    <sys:String x:Key="LOCSuccessStoryNotificationsXboxDisabled">Xbox 已在 SuccessStory 中启用，但其库扩展未在 Playnite 中启用</sys:String>
     <sys:String x:Key="LOCSuccessStoryNotificationsXboxNotAuthenticate">Xbox 用户未验证</sys:String>
     <sys:String x:Key="LOCSuccessStoryNotificationsRetroAchievementsBadConfig">未在设置中正确配置 RetroAchievements</sys:String>
     <sys:String x:Key="LOCSuccessStoryNotificationsRetroAchievementsNoConsoleId" xml:space="preserve">No ConsoleId find for {0} with platforms {1}.
@@ -48,12 +48,12 @@ Associate the platform in the plugin settings</sys:String>
 	<sys:String x:Key="LOCSuccessStoryNotificationsRpcs3BadConfig">未在设置中正确配置 RPCS3</sys:String>
 	<sys:String x:Key="LOCSuccessStoryNotificationsShadPS4BadConfig">ShadPS4 has not been correctly configured in settings</sys:String>
 	<sys:String x:Key="LOCSuccessStoryNotificationsXbox360BadConfig">Xbox360 Achievements have not been correctly configured in settings</sys:String>
-	<sys:String x:Key="LOCSuccessStoryNotificationsBattleNetDisabled">Battle.net 已在功成名就中启用，但其库扩展在 Playnite 中禁用</sys:String>
+	<sys:String x:Key="LOCSuccessStoryNotificationsBattleNetDisabled">Battle.net 已在 SuccessStory 中启用，但其库扩展在 Playnite 中禁用</sys:String>
     <sys:String x:Key="LOCSuccessStoryNotificationsBattleNetNoAuthenticate">Battle.net 用户未验证</sys:String>
     <sys:String x:Key="LOCSuccessStoryNotificationsBattleNetNoAuthenticateOverwatch">Battle.net 守望先锋用户未验证</sys:String>
     <sys:String x:Key="LOCSuccessStoryNotificationsBattleNetNoAuthenticateSc2">Battle.net 星战争霸 II 用户未验证</sys:String>
     <sys:String x:Key="LOCSuccessStoryNotificationsGameJoltDisabled">Game Jolt 已在 SuccessStory 中启用，但其库扩展未在 Playnite 中启用</sys:String>
-    <sys:String x:Key="LOCSuccessStoryNotificationsEpicDisabled">Epic 已在功成名就中启用，但其库扩展在 Playnite 中禁用</sys:String>
+    <sys:String x:Key="LOCSuccessStoryNotificationsEpicDisabled">Epic 已在 SuccessStory 中启用，但其库扩展在 Playnite 中禁用</sys:String>
     <sys:String x:Key="LOCSuccessStoryNotificationsEpicNoAuthenticate">Epic 用户未验证</sys:String>
     <sys:String x:Key="LOCSuccessStoryNotificationsGw2BadConfig">未在设置中正确配置 GuildWars 2</sys:String>
     
@@ -272,7 +272,7 @@ Associate the platform in the plugin settings</sys:String>
 
     <!-- QuickSearch -->
 
-    <sys:String x:Key="LOCSsQuickSearchDescription">用功成名就数据搜索游戏</sys:String>
+    <sys:String x:Key="LOCSsQuickSearchDescription">用 SuccessStory 数据搜索游戏</sys:String>
     <sys:String x:Key="LOCSsQuickSearchByTime">按完全解锁预估需时查找</sys:String>
     <sys:String x:Key="LOCSsQuickSearchByPercent">按进度查找</sys:String>
     
@@ -287,7 +287,7 @@ Associate the platform in the plugin settings</sys:String>
 
     <!-- SuccessStorySearch -->
 
-    <sys:String x:Key="LOCSuccessStorySearchDescription">用功成名就数据搜索游戏</sys:String>
+    <sys:String x:Key="LOCSuccessStorySearchDescription">用 SuccessStory 数据搜索游戏</sys:String>
     <sys:String x:Key="LOCSuccessStorySearchHint" xml:space="preserve">参数说明：
 -percent        进度百分比(例如：-percent=50 / -percent=&lt;50 / -percent=&gt;50 / -percent=10&lt;&gt;50)
 -time       完全解锁所需时间(例如：-time=5h / -time=&lt;50min / -time=&gt;50s / -time=10min&lt;&gt;5h)
