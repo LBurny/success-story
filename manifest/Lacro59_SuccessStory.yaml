@@ -1,0 +1,447 @@
+AddonId: playnite-successstory-plugin
+Packages:
+  - Version: 2.0
+    RequiredApiVersion: 6.0.0
+    ReleaseDate: 2021-09-09
+    PackageUrl: https://github.com/Lacro59/playnite-successstory-plugin/releases/download/v2.0/playnite-successstory-plugin_2_0.pext
+    Changelog:
+      - Playnite 9 beta version (not compatible with Playnite 8)
+      - Custom UI Elements for custom theme integration (see wiki on GitHub)
+      - Fixed many bugs
+      - Added a source selector for manual achievements
+      - Added PSN achievements
+      - Added Overwatch achievements
+      - Added basic Starcraft II achievements
+      - UI tweaks
+      - Added estimate time to unlock all achievements
+  - Version: 2.1
+    RequiredApiVersion: 6.0.0
+    ReleaseDate: 2021-09-16
+    PackageUrl: https://github.com/Lacro59/playnite-successstory-plugin/releases/download/v2.1/playnite-successstory-plugin_2_1.pext
+    Changelog:
+      - Playnite 9 beta version (not compatible with Playnite 8)
+      - Added new variables for custom theme (see wiki)
+      - Added new menu options for manual achievements
+      - UI tweaks
+      - Fixed many bugs
+      - Improved performances
+  - Version: 2.2
+    RequiredApiVersion: 6.0.0
+    ReleaseDate: 2021-09-30
+    PackageUrl: https://github.com/Lacro59/playnite-successstory-plugin/releases/download/v2.2/playnite-successstory-plugin_2_2.pext
+    Changelog:
+      - Playnite 9 (not compatible with Playnite 8)
+      - UI tweaks
+      - Fixed many bugs
+      - Improved performances and code optimizations (thanks to Jeshibu)
+      - Added tag with time to full unlock
+      - Xbox360 achievements support (thanks to Jeshibu)
+  - Version: 2.2.1
+    RequiredApiVersion: 6.0.0
+    ReleaseDate: 2021-10-11
+    PackageUrl: https://github.com/Lacro59/playnite-successstory-plugin/releases/download/v2.2.1/playnite-successstory-plugin_2_2_1.pext
+    Changelog:
+      - Playnite 9 (not compatible with Playnite 8)
+      - UI tweaks
+      - Fixed many bugs
+      - Fixed PSN trophies
+  - Version: 2.2.2
+    RequiredApiVersion: 6.1.0
+    ReleaseDate: 2021-10-15
+    PackageUrl: https://github.com/Lacro59/playnite-successstory-plugin/releases/download/v2.2.2/playnite-successstory-plugin_2_2_2.pext
+    Changelog:
+      - UI tweaks
+      - Optimizations for images caching
+      - Fixed many bugs
+      - Fixed PSN trophies
+  - Version: 2.3
+    RequiredApiVersion: 6.1.0
+    ReleaseDate: 2021-10-29
+    PackageUrl: https://github.com/Lacro59/playnite-successstory-plugin/releases/download/v2.3/playnite-successstory-plugin_2_3.pext
+    Changelog:
+      - Added Epic achievements (not developers achievements)
+      - Added optional Ultra-rare achievements system
+      - Added configuration for rarity achievements system
+      - UI tweaks
+      - Optimizations for images caching
+      - Updated localizations
+      - Fixed bugs on achievements for emulated games
+      - Fixed many bugs
+  - Version: 2.4
+    RequiredApiVersion: 6.1.0
+    ReleaseDate: 2021-11-04
+    PackageUrl: https://github.com/Lacro59/playnite-successstory-plugin/releases/download/v2.4/playnite-successstory-plugin_2_4.pext
+    Changelog:
+      - Fixed an issue on Epic achievements
+      - Improved performances
+      - Added sorting options on achievements lists
+      - Fixed an issue on time zone
+      - Added an option for add a selected feature when game has achievements
+      - Fixed many bugs
+  - Version: 2.5
+    RequiredApiVersion: 6.1.0
+    ReleaseDate: 2021-11-21
+    PackageUrl: https://github.com/Lacro59/playnite-successstory-plugin/releases/download/v2.5/playnite-successstory-plugin_2_5.pext
+    Changelog:
+      - Fixed many issues with Epic achievements
+      - Fixed many issues with RetroAchievements
+      - Fixed an issue on time zone
+      - Added achievements progression (Steam only)
+      - Added auto import with library update
+      - Updated localizations
+      - Fixed many bugs
+  - Version: 2.5.1
+    RequiredApiVersion: 6.1.0
+    ReleaseDate: 2021-11-21
+    PackageUrl: https://github.com/Lacro59/playnite-successstory-plugin/releases/download/v2.5.1/playnite-successstory-plugin_2_5_1.pext
+    Changelog:
+      - Fixed settings issue
+  - Version: 2.6
+    RequiredApiVersion: 6.2.0
+    ReleaseDate: 2021-12-01
+    PackageUrl: https://github.com/Lacro59/playnite-successstory-plugin/releases/download/v2.6/playnite-successstory-plugin_2_6.pext
+    Changelog:
+      - Added World of Warcraft achievements
+      - Updated localizations
+      - Fixed many bugs
+  - Version: 2.6.1
+    RequiredApiVersion: 6.2.0
+    ReleaseDate: 2021-12-01
+    PackageUrl: https://github.com/Lacro59/playnite-successstory-plugin/releases/download/v2.6.1/playnite-successstory-plugin_2_6_1.pext
+    Changelog:
+      - Fixed minors bugs
+  - Version: 2.6.2
+    RequiredApiVersion: 6.2.0
+    ReleaseDate: 2021-12-01
+    PackageUrl: https://github.com/Lacro59/playnite-successstory-plugin/releases/download/v2.6.2/playnite-successstory-plugin_2_6_2.pext
+    Changelog:
+      - Comed back on a modification that blocks the download in an infinite time
+  - Version: 2.7
+    RequiredApiVersion: 6.2.0
+    ReleaseDate: 2021-12-10
+    PackageUrl: https://github.com/Lacro59/playnite-successstory-plugin/releases/download/v2.7/playnite-successstory-plugin_2_7.pext
+    Changelog:
+      - Added QuickSearch support
+      - Updated localizations
+      - Minors UI optimizations
+      - Fixed many bugs
+  - Version: 2.8
+    RequiredApiVersion: 6.2.0
+    ReleaseDate: 2021-12-31
+    PackageUrl: https://github.com/Lacro59/playnite-successstory-plugin/releases/download/v2.8/playnite-successstory-plugin_2_8.pext
+    Changelog:
+      - Updated localizations
+      - UI tweaks
+      - Added filters options for each type of plugin control
+      - Many minor improvements
+      - Fixed many bugs
+  - Version: 2.8.1
+    RequiredApiVersion: 6.2.0
+    ReleaseDate: 2022-01-02
+    PackageUrl: https://github.com/Lacro59/playnite-successstory-plugin/releases/download/v2.8.1/playnite-successstory-plugin_2_8_1.pext
+    Changelog:
+      - Fixed a crash
+  - Version: 2.9
+    RequiredApiVersion: 6.2.2
+    ReleaseDate: 2022-01-27
+    PackageUrl: https://github.com/Lacro59/playnite-successstory-plugin/releases/download/v2.9/playnite-successstory-plugin_2_9.pext
+    Changelog:
+      - Updated localizations	  
+      - Fixed minors bugs
+      - Minors UI tweaks
+      - Minors optimizations
+      - Xbox achievements minors optimizations
+      - Steam achievements minors optimizations
+      - RetroAchievements minors optmizations
+      - PSN achievements minors optmizations
+      - Added Tab for PS3 games with multi games achievements
+      - Added options for custom locked achievements
+      - Added missing color for Epic achievements in Exophase selection
+      - Added manual achivements for Genshin Impact
+  - Version: 2.9.1
+    RequiredApiVersion: 6.2.2
+    ReleaseDate: 2022-02-02
+    PackageUrl: https://github.com/Lacro59/playnite-successstory-plugin/releases/download/v2.9.1/playnite-successstory-plugin_2_9_1.pext
+    Changelog:
+      - Updated localizations
+      - Minor cache system optimizations
+      - Fixed minors bugs
+      - Fixed bugs with manual achievements
+      - Added progress indicator for Genshin Impact achievements
+  - Version: 2.10
+    RequiredApiVersion: 6.2.2
+    ReleaseDate: 2022-03-03
+    PackageUrl: https://github.com/Lacro59/playnite-successstory-plugin/releases/download/v2.10/playnite-successstory-plugin_2_10.pext
+    Changelog:
+      - Updated localizations
+      - Fixed minors bugs
+      - Fixed bugs with Genshin Impact achievements
+      - UI tweaks
+      - Fixed minor bugs with RetroAchievements
+      - Added a new filters for editing manual achievements
+      - Added new options in plugin settings to hide chart in plugin main view
+      - Added QuickSearch info in plugin settings
+      - Added new filtes in plugin main view
+  - Version: 2.11
+    RequiredApiVersion: 6.2.2
+    ReleaseDate: 2022-03-21
+    PackageUrl: https://github.com/Lacro59/playnite-successstory-plugin/releases/download/v2.11/playnite-successstory-plugin_2_11.pext
+    Changelog:
+      - Updated localizations
+      - Fixed minors bugs
+      - UI tweaks
+      - Added Guild Wars 2 achievements
+      - Existing data retained when no realization is found
+      - Limit RetroAchievements for supported console
+  - Version: 2.12
+    RequiredApiVersion: 6.2.2
+    ReleaseDate: 2022-05-16
+    PackageUrl: https://github.com/Lacro59/playnite-successstory-plugin/releases/download/v2.12/playnite-successstory-plugin_2_12.pext
+    Changelog:
+      - Updated localizations
+      - Fixed minors bugs
+      - UI tweaks
+      - Fixed issue with hidden games
+      - Fixed issue with excluded games
+      - Fixed issue with Epic achievements (thanks to Jhanlon95)
+      - Filters are kept after a game click
+  - Version: 2.12.1
+    RequiredApiVersion: 6.2.2
+    ReleaseDate: 2022-07-19
+    PackageUrl: https://github.com/Lacro59/playnite-successstory-plugin/releases/download/v2.12.1/playnite-successstory-plugin_2_12_1.pext
+    Changelog:
+      - Updated localizations
+      - UI tweaks
+      - Added missing icon for Genshin Impact
+      - Fixed minor issues
+      - Fixed minor issues with Origin
+      - Fixed minor issues with Steam
+      - Fixed minor issues with Epic
+      - Fixed minor issues with GOG
+      - Fixed minor issues with RetroAchievements
+  - Version: 2.12.2
+    RequiredApiVersion: 6.2.2
+    ReleaseDate: 2022-07-20
+    PackageUrl: https://github.com/Lacro59/playnite-successstory-plugin/releases/download/v2.12.2/playnite-successstory-plugin_2_12_2.pext
+    Changelog:
+      - Fixed minor issues with Epic url encoding (thanks to Jhanlon95)
+  - Version: 3.0
+    RequiredApiVersion: 6.4.0
+    ReleaseDate: 2022-09-23
+    PackageUrl: https://github.com/Lacro59/playnite-successstory-plugin/releases/download/v3.0/playnite-successstory-plugin_3_0.pext
+    Changelog:
+      - Playnite 10 only
+      - Updated localizations
+      - Fixed minor issues
+  - Version: 3.1
+    RequiredApiVersion: 6.7.0
+    ReleaseDate: 2022-12-16
+    PackageUrl: https://github.com/Lacro59/playnite-successstory-plugin/releases/download/v3.1/playnite-successstory-plugin_3_1.pext
+    Changelog:
+      - Updated localizations
+      - Set Origin to EA
+      - Fixed minor issues
+      - Added an option to hide secret achievement when locked
+      - Updated Genshin Impact achievements
+      - Fixed RPCS3 achievements
+      - Fixed duplicate achievements icons
+      - Fixed many issue with RetroAchievements
+      - Added support for PlayniteSearch
+  - Version: 3.1.1
+    RequiredApiVersion: 6.9.0
+    ReleaseDate: 2023-05-19
+    PackageUrl: https://github.com/Lacro59/playnite-successstory-plugin/releases/download/v3.1.1/playnite-successstory-plugin_3_1_1.pext
+    Changelog:
+      - Updated localizations
+      - Fixed issue with RetroAchievements settings (thanks to CanRanBan)
+      - Updated Genshin Impact achievements (thanks to Covkie)
+      - Fixed issue with hidden achievements description
+      - Fixed issue with Starcraft 2 achievements
+      - Fixed minor issues and crash
+  - Version: 3.1.2
+    RequiredApiVersion: 6.9.0
+    ReleaseDate: 2023-05-23
+    PackageUrl: https://github.com/Lacro59/playnite-successstory-plugin/releases/download/v3.1.2/playnite-successstory-plugin_3_1_2.pext
+    Changelog:
+      - Fixed crash (thanks to Covkie)
+      - Fixed bad parsing of trophy earned for PSN (thanks to Damir Arh)
+      - Updated Genshin Impact Achievement Icons (thanks to Covkie)
+      - Fixed minor issues and crash
+  - Version: 3.1.3
+    RequiredApiVersion: 6.9.0
+    ReleaseDate: 2023-07-24
+    PackageUrl: https://github.com/Lacro59/playnite-successstory-plugin/releases/download/v3.1.3/playnite-successstory-plugin_3_1_3.pext
+    Changelog:
+      - Updated localizations
+      - Disabled RetroAchievements
+      - Fixed minor issues and crash
+  - Version: 3.1.4
+    RequiredApiVersion: 6.10.0
+    ReleaseDate: 2023-10-25
+    PackageUrl: https://github.com/Lacro59/playnite-successstory-plugin/releases/download/v3.1.4/playnite-successstory-plugin_3_1_4.pext
+    Changelog:
+      - Updated localizations
+      - Fixed settings from RetroAchievements
+      - Externalised Steam
+      - Fixed WOW settings
+      - Fixed minor issues and crash
+  - Version: 3.1.5
+    RequiredApiVersion: 6.10.0
+    ReleaseDate: 2023-10-25
+    PackageUrl: https://github.com/Lacro59/playnite-successstory-plugin/releases/download/v3.1.5/playnite-successstory-plugin_3_1_5.pext
+    Changelog:
+      - Updated localizations
+      - Reactivated RetroAchievements
+      - Fixed bug with Exophase (thanks to Kyzan)
+      - Fixed many bugs
+  - Version: 3.1.6
+    RequiredApiVersion: 6.10.0
+    ReleaseDate: 2024-01-07
+    PackageUrl: https://github.com/Lacro59/playnite-successstory-plugin/releases/download/v3.1.6/playnite-successstory-plugin_3_1_6.pext
+    Changelog:
+      - Fixed RetroAchievements
+      - Fixed Steam
+      - Fixed Steam (thanks to damirarh & Kryeker)
+  - Version: 3.1.7
+    RequiredApiVersion: 6.10.0
+    ReleaseDate: 2024-01-08
+    PackageUrl: https://github.com/Lacro59/playnite-successstory-plugin/releases/download/v3.1.7/playnite-successstory-plugin_3_1_7.pext
+    Changelog:
+      - Updated RetroAchievements api
+      - Fixed Steam
+      - Fixed Steam date unlocked with web parsing (thanks to Kryeker)
+  - Version: 3.2
+    RequiredApiVersion: 6.11.0
+    ReleaseDate: 2024-08-12
+    PackageUrl: https://github.com/Lacro59/playnite-successstory-plugin/releases/download/v3.2/playnite-successstory-plugin_3_2.pext
+    Changelog:
+      - 'Updated: Localizations'
+      - 'Updated: UI'
+      - 'Fixed: Manual achievements bugs'
+      - 'Fixed: Bad platform association with RetroAchievements'
+      - 'Optimized: Steam achievements'
+      - 'Optimized: Exophase achievements'
+      - 'Optimized: RetroAchievements'
+      - 'Fixed: Unable to detect RPCS3 trophies'
+      - 'Added: New settings options to hide/show elements from secret achievements'
+      - 'Updated: Genshin Impact achievements'
+      - 'Added: Manually set RetroAchievements game ID'
+      - 'Fixed: RetroAchievements don''t work if a game is set to ask for emulator on startup'
+      - 'Added: Datetime trophy from RPCS3'
+      - 'Fixed: SuccessStory doesn''t import for specific EGS games'
+      - 'Fixed: Epic and Origin achievements does not work'
+      - 'Fixed: Unable to get trophies for Playstation'
+      - 'Fixed: Newer WoW achievements missing Icons'
+      - 'Added: EGS Achievement support using Legendary client'
+      - 'Fixed: Error when importing games marked private'
+      - 'Fixed: The Exosphere profile has an endless captcha when I trying login it.'
+      - 'Added: Option to toggle to a Gamerscore-Eske Style of displaying a Score as opossed to a Trophy, like on Xbox One'
+      - 'Added: Expose total achievements score across all platforms for fullscreen themes'
+      - 'Added: Optionally ignore/exclude games you have not earned any achievements/trophies'
+      - 'Added: Achivements not updated for games already in library despite automatic updates being enabled'
+      - 'Added: Option to set time manual achivement was unlocked'
+      - 'Added: Steam groupped achievement view'
+      - 'Fixed: WoW realm list won''t load'
+  - Version: 3.3
+    RequiredApiVersion: 6.11.0
+    ReleaseDate: 2024-08-31
+    PackageUrl: https://github.com/Lacro59/playnite-successstory-plugin/releases/download/v3.3/playnite-successstory-plugin_3_3.pext
+    Changelog:
+      - 'Updated: Localizations'
+      - 'Fixed: Epic doesn''t find achievement'
+      - 'Fixed: Data updates on application start'
+      - 'Fixed: Error on data stats'
+      - 'Added: New elements for custom theme (see wiki)'
+      - 'Fixed: Errors with Steam account'
+      - 'Fixed: Errors with Epic account'
+      - 'Added: Get data for public Epic account (without authentification)'
+  - Version: 3.3.1
+    RequiredApiVersion: 6.11.0
+    ReleaseDate: 2024-09-02
+    PackageUrl: https://github.com/Lacro59/playnite-successstory-plugin/releases/download/v3.3.1/playnite-successstory-plugin_3_3_1.pext
+    Changelog:
+      - 'Fixed: Crashs on plugin view'
+      - 'Fixed: Looping data migration'
+  - Version: 3.3.2
+    RequiredApiVersion: 6.11.0
+    ReleaseDate: 2024-09-23
+    PackageUrl: https://github.com/Lacro59/playnite-successstory-plugin/releases/download/v3.3.2/playnite-successstory-plugin_3_3_2.pext
+    Changelog:
+      - 'Updated: Localizations'
+      - 'Optimized: Prevent recalculation of non-zero GamerScore values (thanks to Artem)'
+      - 'Optimized: Epic detection (thanks to Jhanlon95)'
+      - 'Fixed: Bug when entering time for manual achievements'
+      - 'Fixed: Bug on auto completation on 100%'
+  - Version: 3.4
+    RequiredApiVersion: 6.11.0
+    ReleaseDate: 2024-11-23
+    PackageUrl: https://github.com/Lacro59/playnite-successstory-plugin/releases/download/v3.4/playnite-successstory-plugin_3_4.pext
+    Changelog:
+      - 'Updated: Localizations'
+      - 'Optimized: UI'
+      - 'Fixed: Issue with auto game completation 100%'
+      - 'Fixed: Issue with Steam configuration'
+      - 'Fixed: Issue with date of unlocked achievements (thanks to yomisimie)'
+      - 'Fixed: Issue with manually det RetroAchievements ID'
+      - 'Added: New theme data (see wiki)'
+      - 'Added: Export data function'
+      - 'Added: GogOssLibrary support'
+      - 'Added: Sync Genshin Impact achievements via tracker (import data in game menu)'
+      - 'Fixed: World of Warcraft Region List won''t load'
+  - Version: 3.4.1
+    RequiredApiVersion: 6.11.0
+    ReleaseDate: 2024-12-20
+    PackageUrl: https://github.com/Lacro59/playnite-successstory-plugin/releases/download/v3.4.1/playnite-successstory-plugin_3_4_1.pext
+    Changelog:
+      - 'Updated: Localizations'
+      - 'Fixed: Issue with date in manual achievements'
+      - 'Fixed: Many errors on download data'
+      - 'Improved: Time to calculate data'
+      - 'Fixed: "Electronic Arts" default filter not working'
+      - 'Fixed: Issue on GOG achievements (thanks to Jhanlon95)'
+      - 'Fixed: Issue on Steam achievements (thanks to Kryeker)'
+  - Version: 3.5
+    RequiredApiVersion: 6.11.0
+    ReleaseDate: 2025-05-17
+    PackageUrl: https://github.com/Lacro59/playnite-successstory-plugin/releases/download/v3.5/playnite-successstory-plugin_3_5.pext
+    Changelog:
+      - 'Added: Achievements support for Game Jolt, Wuthering Waves, Honkai Star Rail, and Zenless Zone Zero'
+      - 'Added: Refresh button on achievements pages'
+      - 'Enhanced: Achievement progression and rarity display'
+      - 'Fixed: Integration issues with TrueAchievements, TrueSteamAchievements, and Exophase'
+      - 'Fixed: Errors related to null unlock dates and duplicated achievements in list view'
+      - 'Fixed: GamerScore calculation for manual achievements and platinum trophies'
+      - 'Fixed: Genshin Impact achievements import and reset issues'
+      - 'Optimized: UI layout and achievement display ordering'
+      - 'Added: Quick wiki access buttons in settings'
+      - 'Updated: Translations and localization for multiple languages, including new keys for added games and Game Jolt support'
+      - 'Improved: Reliability of achievement providers with better error handling'
+      - 'Fixed: Various minor errors and performance issues'
+  - Version: 3.7
+    RequiredApiVersion: 6.13.0
+    ReleaseDate: 2025-12-10
+    PackageUrl: https://github.com/Lacro59/playnite-successstory-plugin/releases/download/v3.7/playnite-successstory-plugin_3_7.pext
+    Changelog:
+      - 'Updated: Localization'
+      - 'Added: Support for Xbox 360 (Xenia) achievements (thanks to eFMann)'
+      - 'Added: Integration for ShadPS4 achievements (thanks to eFMann)'
+      - 'Added: Support for RetroAchievements hardcore unlocks with toggleable display and updated statistics'
+      - 'Updated: RPCS3 achievements (thanks to eFMann & philipjholm)'
+      - 'Updated: Steam, Epic and RetroAchievements for better stability '
+      - 'Fixed: Issues in achievement database logic and manual success story editing'
+      - 'Updated: Minor UI adjustments'
+      - 'Updated: EA achievements API'
+      - 'Fixed: Exophase achievements (thanks to SiriosDev)'
+      - 'Added: Support for XCloud'
+  - Version: 3.7.1
+    RequiredApiVersion: 6.13.0
+    ReleaseDate: 2026-04-07
+    PackageUrl: https://github.com/Lacro59/playnite-successstory-plugin/releases/download/v3.7.1/playnite-successstory-plugin_3_7_1.pext
+    Changelog:
+      - 'Updated: Localizations'
+      - 'Added: New option to enable Xbox 360 achievement retrieval'
+      - 'Improved: Xbox One achievement image downloading and refresh behavior (thanks to damirarh)'
+      - 'Improved: Achievement clients thread safety, async handling, cancellation support, and diagnostics'
+      - 'Improved: Steam, Epic, GOG, Exophase and TrueAchievements provider stability and fallback logic'
+      - 'Fixed: PS4/ShadPS4 timestamp conversion (Unix 10-digit support) (thanks to CaioSPereira21)'
+      - 'Fixed: Potential NullReferenceException and various minor issues (thanks to Wibias)'
