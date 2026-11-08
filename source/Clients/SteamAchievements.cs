@@ -13,6 +13,7 @@ using CommonPluginsShared.Models;
 using PlayniteTools = CommonPluginsShared.PlayniteTools;
 using CommonPluginsShared.Extensions;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Diagnostics;
 using FuzzySharp;
 using CommonPluginsStores.Steam;
@@ -34,6 +35,12 @@ namespace SuccessStory.Clients
         /// Gets or sets the last loaded HTML document (if any).
         /// </summary>
         private IHtmlDocument HtmlDocument { get; set; } = null;
+
+        /// <summary>
+        /// Progression scraping target reachability. Cleared for the session after the first
+        /// timeout/failure so a blocked steamcommunity.com does not stall every refreshed game.
+        /// </summary>
+        private static bool SteamProgressionWebAvailable { get; set; } = true;
 
         /// <summary>
         /// Indicates whether local achievement data should be used.
@@ -167,7 +174,7 @@ namespace SuccessStory.Clients
                         && (PluginDatabase.PluginSettings.Settings.SteamStoreSettings.UseAuth || !SteamApi.CurrentAccountInfos.IsPrivate))
                     {
                         var swProg = Stopwatch.StartNew();
-                        gameAchievements.Items = GetProgressionByWeb(gameAchievements.Items, game);
+                        gameAchievements.Items = GetProgressionByWebWithTimeout(gameAchievements.Items, game);
                         swProg.Stop();
                         Logger.Debug($"GetProgressionByWeb took {swProg.ElapsedMilliseconds}ms");
                     }
@@ -595,6 +602,40 @@ namespace SuccessStory.Clients
             }
 
             return searchGames;
+        }
+
+        /// <summary>
+        /// Runs <see cref="GetProgressionByWeb"/> with a bounded wait.
+        /// The scraping target (steamcommunity.com) is unreachable on some networks, where the
+        /// underlying HttpClient only gives up after its 100s default timeout - that would stall
+        /// every game of a full refresh. Achievements are already fetched at this point, so the
+        /// optional enrichment is skipped instead of blocking the whole refresh.
+        /// </summary>
+        private List<Achievement> GetProgressionByWebWithTimeout(List<Achievement> achievements, Game game)
+        {
+            if (!SteamProgressionWebAvailable)
+            {
+                return achievements;
+            }
+
+            try
+            {
+                Task<List<Achievement>> task = Task.Run(() => GetProgressionByWeb(achievements, game));
+                if (!task.Wait(TimeSpan.FromSeconds(8)))
+                {
+                    SteamProgressionWebAvailable = false;
+                    Logger.Warn("GetProgressionByWeb timed out (steamcommunity.com unreachable?) - skipping progression scraping for the rest of the session");
+                    return achievements;
+                }
+
+                return task.Result;
+            }
+            catch (Exception ex)
+            {
+                SteamProgressionWebAvailable = false;
+                Logger.Warn($"GetProgressionByWeb failed: {ex.Message} - skipping progression scraping for the rest of the session");
+                return achievements;
+            }
         }
 
         /// <summary>
