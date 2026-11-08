@@ -23,10 +23,18 @@ namespace CommonPluginsShared
             var dictionaries = Application.Current.Resources.MergedDictionaries;
 
 #if DEBUG
-            // In development mode, force loading LocSource if not defaultLoad
+            // In development mode, load LocSource first so keys missing from a translation still
+            // resolve to the English source strings...
             if (!defaultLoad)
             {
                 SetPluginLanguage(pluginFolder, "LocSource", true);
+
+                // ...then load the real language too, otherwise a debug build ignores the
+                // Playnite language entirely and the plugin UI stays English.
+                if (!language.Equals("LocSource", StringComparison.OrdinalIgnoreCase))
+                {
+                    SetPluginLanguage(pluginFolder, language, true);
+                }
             }
 
             // Load plugin-specific localization (not "Common") only if defaultLoad is requested
