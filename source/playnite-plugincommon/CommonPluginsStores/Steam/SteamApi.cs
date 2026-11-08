@@ -165,7 +165,12 @@ namespace CommonPluginsStores.Steam
 			{
 				if (_steamAppsDict == null && SteamApps != null)
 				{
-					_steamAppsDict = SteamApps.ToDictionary(x => x.AppId, x => x);
+					// The app list downloaded from Steam can contain duplicate AppIds; a plain
+					// ToDictionary() throws ArgumentException ("same key") and that exception used to
+					// abort the whole achievement refresh for every game with achievements.
+					_steamAppsDict = SteamApps
+						.GroupBy(x => x.AppId)
+						.ToDictionary(x => x.Key, x => x.First());
 				}
 				return _steamAppsDict;
 			}
