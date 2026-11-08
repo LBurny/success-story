@@ -744,22 +744,6 @@ namespace SuccessStory
                 }
             }
 
-#if DEBUG
-            gameMenuItems.Add(new GameMenuItem
-            {
-                MenuSection = ResourceProvider.GetString("LOCSuccessStory"),
-                Description = "-"
-            });
-            gameMenuItems.Add(new GameMenuItem
-            {
-                MenuSection = ResourceProvider.GetString("LOCSuccessStory"),
-                Description = "Test",
-                Action = (mainMenuItem) =>
-                {
-
-                }
-            });
-#endif
             return gameMenuItems;
         }
 
@@ -949,23 +933,6 @@ namespace SuccessStory
                 });
             }
 
-
-#if DEBUG
-            mainMenuItems.Add(new MainMenuItem
-            {
-                MenuSection = menuInExtensions + ResourceProvider.GetString("LOCSuccessStory"),
-                Description = "-"
-            });
-            mainMenuItems.Add(new MainMenuItem
-            {
-                MenuSection = menuInExtensions + ResourceProvider.GetString("LOCSuccessStory"),
-                Description = "Test",
-                Action = (mainMenuItem) =>
-                {
-
-                }
-            });
-#endif
 
             return mainMenuItems;
         }
