@@ -70,7 +70,11 @@ namespace SuccessStory.Clients
                     // Trophies details
                     XDocument trophyDetailsXml = XDocument.Load(trophyFileDetailsPath);
 
-                    string gameName = trophyDetailsXml.Descendants("title-name").FirstOrDefault().Value.Trim();
+                    string gameName = trophyDetailsXml.Descendants("title-name").FirstOrDefault()?.Value?.Trim();
+                    if (gameName.IsNullOrEmpty())
+                    {
+                        gameName = System.IO.Path.GetFileNameWithoutExtension(trophyFileDetailsPath);
+                    }
 
                     // eFMann - Get all trophies, including those in groups
                     Dictionary<string, string> groupsDict = trophyDetailsXml.Descendants("group")

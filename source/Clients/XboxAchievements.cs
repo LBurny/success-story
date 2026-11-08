@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.Threading;
 using Playnite.SDK;
 using Playnite.SDK.Data;
@@ -561,8 +562,10 @@ namespace SuccessStory.Clients
                 Percent = 100,
                 DateUnlocked = xboxAchievement.progression.timeUnlocked.ToString().Contains(default(DateTime).ToString()) ? (DateTime?)null : xboxAchievement.progression.timeUnlocked,
                 UrlLocked = string.Empty,
-                UrlUnlocked = AddResizeParamsToUrl(xboxAchievement.mediaAssets[0].url),
-                GamerScore = float.Parse(xboxAchievement.rewards?.FirstOrDefault(x => x.type.IsEqual("Gamerscore"))?.value ?? "0")
+                UrlUnlocked = AddResizeParamsToUrl(xboxAchievement.mediaAssets?.FirstOrDefault()?.url),
+                GamerScore = float.TryParse(
+                    xboxAchievement.rewards?.FirstOrDefault(x => x.type.IsEqual("Gamerscore"))?.value,
+                    NumberStyles.Float, CultureInfo.InvariantCulture, out float gamerScore) ? gamerScore : 0f
             };
         }
 

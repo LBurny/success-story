@@ -309,7 +309,14 @@ namespace SuccessStory.Clients
         private List<GameStats> ParseDateMode(IHtmlDocument htmlDocument, List<GameStats> AllStats, string Mode)
         {
             #region TopHero
-            var TopHeroSection = htmlDocument.QuerySelectorAll($"#{Mode.ToLower()} .career-section")[0];
+            var TopHeroSections = htmlDocument.QuerySelectorAll($"#{Mode.ToLower()} .career-section");
+            if (TopHeroSections == null || TopHeroSections.Length == 0)
+            {
+                Logger.Warn($"ParseDateMode({Mode}): career-section not found");
+                return AllStats;
+            }
+
+            var TopHeroSection = TopHeroSections[0];
             var DataProgressAll = TopHeroSection.QuerySelectorAll(".progress-category");
 
             //foreach (var item in TopHeroSection.QuerySelectorAll(".dropdown-select-element option").Select((ElementSection, i) => new { i, ElementSection }))

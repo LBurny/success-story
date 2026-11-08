@@ -43,6 +43,18 @@ namespace SuccessStory.Clients
         private static bool SteamProgressionWebAvailable { get; set; } = true;
 
         /// <summary>
+        /// Exophase fallback reachability. These fallbacks scrape third-party sites that are
+        /// unreachable on some networks; the first timeout disables them for the session so a
+        /// full refresh does not wait for every game.
+        /// </summary>
+        private static bool ExophaseFallbackAvailable { get; set; } = true;
+
+        /// <summary>
+        /// TrueSteamAchievements fallback reachability (see <see cref="ExophaseFallbackAvailable"/>).
+        /// </summary>
+        private static bool TrueSteamAchievementsFallbackAvailable { get; set; } = true;
+
+        /// <summary>
         /// Indicates whether local achievement data should be used.
         /// </summary>
         private bool IsLocal { get; set; } = false;
@@ -184,9 +196,10 @@ namespace SuccessStory.Clients
                 // If no achievements were obtained from Steam API, try Exophase fallback
                 if (!gameAchievements.HasAchievements)
                 {
+                    Stopwatch swExophase = Stopwatch.StartNew();
                     try
                     {
-                        if (SuccessStory.ExophaseAchievements != null)
+                        if (ExophaseFallbackAvailable && SuccessStory.ExophaseAchievements != null)
                         {
                             // No achievements from Steam API; try Exophase fallback
                             var exSearch = SuccessStory.ExophaseAchievements.SearchGame(game.Name, "Steam");
@@ -247,10 +260,21 @@ namespace SuccessStory.Clients
                     {
                         Common.LogError(ex, false, "Error while using Exophase fallback for Steam achievements", true, PluginDatabase.PluginName);
                     }
+                    finally
+                    {
+                        swExophase.Stop();
+                        if (ExophaseFallbackAvailable && !gameAchievements.HasAchievements
+                            && swExophase.Elapsed > TimeSpan.FromSeconds(15))
+                        {
+                            ExophaseFallbackAvailable = false;
+                            Logger.Warn("Exophase fallback is timing out (site unreachable?) - skipping it for the rest of the session");
+                        }
+                    }
 
                     // 4) Final Fallback: Try TrueSteamAchievements if Exophase yields no results or fails
-                    if (!gameAchievements.HasAchievements)
+                    if (!gameAchievements.HasAchievements && TrueSteamAchievementsFallbackAvailable)
                     {
+                        Stopwatch swTs = Stopwatch.StartNew();
                         try
                         {
                             Logger.Info($"Steam.GetAchievements: trying TrueSteamAchievements fallback for {game.Name}");
@@ -285,6 +309,16 @@ namespace SuccessStory.Clients
                         catch (Exception exTs)
                         {
                             Common.LogError(exTs, false, "Error while using TrueSteamAchievements fallback for Steam achievements", true, PluginDatabase.PluginName);
+                        }
+                        finally
+                        {
+                            swTs.Stop();
+                            if (TrueSteamAchievementsFallbackAvailable && !gameAchievements.HasAchievements
+                                && swTs.Elapsed > TimeSpan.FromSeconds(15))
+                            {
+                                TrueSteamAchievementsFallbackAvailable = false;
+                                Logger.Warn("TrueSteamAchievements fallback is timing out (site unreachable?) - skipping it for the rest of the session");
+                            }
                         }
                     }
                 }

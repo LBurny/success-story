@@ -48,7 +48,9 @@ namespace CommonPluginsShared
 
             var client = new HttpClient(handler, disposeHandler: true)
             {
-                Timeout = TimeSpan.FromSeconds(60)
+                // Blocked/unreachable hosts otherwise hang for a full minute per request, which
+                // dominates a full achievement refresh. 20s is ample for a normal reply.
+                Timeout = TimeSpan.FromSeconds(20)
             };
 
             client.DefaultRequestHeaders.Add("User-Agent", UserAgent);
@@ -1025,7 +1027,9 @@ namespace CommonPluginsShared
                                 }
                             }
 
-                            TimeSpan waitTimeout = TimeSpan.FromSeconds(60);
+                            // Shorter than the old 60s: blocked sites (Cloudflare/geo) otherwise burn a
+                            // minute per game; a reachable page is ready well before 20s.
+                            TimeSpan waitTimeout = TimeSpan.FromSeconds(20);
 
                             // Always start polling to handle Cloudflare challenges even if elementToWaitFor is null
                             _ = Task.Run(async () => 
