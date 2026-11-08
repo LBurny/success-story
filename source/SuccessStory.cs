@@ -58,6 +58,17 @@ namespace SuccessStory
 
         private bool PreventLibraryUpdatedOnStart { get; set; } = true;
 
+        /// <summary>
+        /// Games added to the Playnite library while the plugin is running. Playnite only raises
+        /// OnLibraryUpdated after a full library update, so a game added by hand used to get no
+        /// achievements until the next Playnite start.
+        /// </summary>
+        private readonly HashSet<Guid> PendingNewGames = new HashSet<Guid>();
+
+        private readonly object PendingNewGamesLock = new object();
+
+        private Timer PendingNewGamesTimer { get; set; }
+
         #endregion
 
         public SuccessStory(IPlayniteAPI api) : base(api, "SuccessStory")
@@ -1011,6 +1022,9 @@ namespace SuccessStory
         // Add code to be executed when Playnite is initialized.
         public override void OnApplicationStarted(OnApplicationStartedEventArgs args)
         {
+			// Fetch achievements for games added to the library during this session
+			API.Instance.Database.Games.ItemCollectionChanged += Games_ItemCollectionChanged;
+
 			// StoreAPI Initialization
 			Task.Run(async () =>
 			{
@@ -1314,6 +1328,16 @@ namespace SuccessStory
         // Add code to be executed when Playnite is shutting down.
         public override void OnApplicationStopped(OnApplicationStoppedEventArgs args)
         {
+            try
+            {
+                API.Instance.Database.Games.ItemCollectionChanged -= Games_ItemCollectionChanged;
+                PendingNewGamesTimer?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn($"Failed to unhook library events: {ex.Message}");
+            }
+
             // Stop the plugin if it is loaded.
             if (PluginDatabase != null)
             {
@@ -1350,6 +1374,71 @@ namespace SuccessStory
                 PluginDatabase.RefreshRecent();
                 PluginSettings.Settings.LastAutoLibUpdateAssetsDownload = DateTime.Now;
                 SavePluginSettings(PluginSettings.Settings);
+            }
+        }
+
+        /// <summary>
+        /// Collects games added to the Playnite library during this session and refreshes them
+        /// once the additions settle (a library import can add hundreds of items at once).
+        /// </summary>
+        private void Games_ItemCollectionChanged(object sender, ItemCollectionChangedEventArgs<Game> e)
+        {
+            if (PreventLibraryUpdatedOnStart || e?.AddedItems == null || e.AddedItems.Count == 0)
+            {
+                return;
+            }
+
+            try
+            {
+                lock (PendingNewGamesLock)
+                {
+                    foreach (Game game in e.AddedItems)
+                    {
+                        // Games the plugin already has data for are handled by the normal refresh paths.
+                        GameAchievements existing = PluginDatabase?.Get(game.Id, true);
+                        if (existing == null || !existing.HasData)
+                        {
+                            PendingNewGames.Add(game.Id);
+                        }
+                    }
+
+                    if (PendingNewGames.Count == 0)
+                    {
+                        return;
+                    }
+
+                    PendingNewGamesTimer?.Dispose();
+                    PendingNewGamesTimer = new Timer(_ => RefreshPendingNewGames(), null, 5000, Timeout.Infinite);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn($"Games_ItemCollectionChanged() failed: {ex.Message}");
+            }
+        }
+
+        private void RefreshPendingNewGames()
+        {
+            List<Guid> ids;
+            lock (PendingNewGamesLock)
+            {
+                if (PendingNewGames.Count == 0)
+                {
+                    return;
+                }
+
+                ids = PendingNewGames.ToList();
+                PendingNewGames.Clear();
+            }
+
+            Logger.Info($"New game(s) added to the library - refreshing {ids.Count}");
+            try
+            {
+                PluginDatabase.Refresh(ids, ResourceProvider.GetString("LOCCommonGettingNewDatas"));
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "RefreshPendingNewGames() failed");
             }
         }
 
