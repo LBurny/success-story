@@ -6,9 +6,18 @@ unlock history for every game in your library, from your own account or imported
 > Fork of [Lacro59/playnite-successstory-plugin](https://github.com/Lacro59/playnite-successstory-plugin)
 > with a few local fixes; see the commit log.
 
-<img src="forum/main_01.jpg" alt="Achievement list" height="180">
-<img src="forum/control_01.jpg" alt="Theme controls" height="180">
-<img src="forum/settings_01.jpg" alt="Settings" height="180">
+<table>
+  <tr>
+    <td align="center" width="33%"><img src="forum/main_01.jpg" alt="Achievement list" width="100%"></td>
+    <td align="center" width="33%"><img src="forum/control_01.jpg" alt="Theme controls" width="100%"></td>
+    <td align="center" width="33%"><img src="forum/settings_01.jpg" alt="Settings" width="100%"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Achievement list</sub></td>
+    <td align="center"><sub>Theme controls</sub></td>
+    <td align="center"><sub>Settings</sub></td>
+  </tr>
+</table>
 
 ## Features
 
