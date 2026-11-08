@@ -33,4 +33,6 @@ namespace CommonPluginsStores.Epic.Models
         [SerializationPropertyName("dependencies")]
         public List<object> Dependencies { get; set; }
     }
+
+
 }

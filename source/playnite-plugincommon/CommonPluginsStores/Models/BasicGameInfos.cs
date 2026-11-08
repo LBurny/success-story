@@ -1,5 +1,4 @@
 ﻿using CommonPluginsShared;
-using CommonPluginsShared.Images;
 using Playnite.SDK.Data;
 using System;
 using System.Collections.Generic;

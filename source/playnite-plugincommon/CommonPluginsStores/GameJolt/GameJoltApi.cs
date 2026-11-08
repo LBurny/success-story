@@ -1,4 +1,4 @@
-using CommonPlayniteShared.Common;
+﻿using CommonPlayniteShared.Common;
 using CommonPluginsShared;
 using CommonPluginsShared.Extensions;
 using CommonPluginsShared.Models;
@@ -21,15 +21,6 @@ namespace CommonPluginsStores.GameJolt
 {
     public class GameJoltApi : StoreApi
     {
-        /// <summary>Minimum delay between Game Jolt HTTP calls to reduce throttling.</summary>
-        private static readonly TimeSpan ApiRequestMinInterval = TimeSpan.FromMilliseconds(500);
-        private readonly RequestRateLimiter _apiRateLimiter = new RequestRateLimiter(ApiRequestMinInterval);
-
-        private void WaitForApiRateLimit()
-        {
-            _apiRateLimiter.WaitAsync().GetAwaiter().GetResult();
-        }
-
         #region Urls
         private static string UrlBase => @"https://gamejolt.com";
         private static string UrlSiteApi => UrlBase + "/site-api";
@@ -129,9 +120,7 @@ namespace CommonPluginsStores.GameJolt
 
                 if (response.IsNullOrEmpty())
                 {
-                    Logger.Warn($"Empty trophies payload for game {id}, retrying once.");
-                    Common.LogDebug($"[GameJoltApi] Empty response for {url}, throttled retry with interval {ApiRequestMinInterval.TotalMilliseconds}ms.");
-                    WaitForApiRateLimit();
+                    Thread.Sleep(1000);
                     jsonData = Web.DownloadJsonDataWebView(url, GetStoredCookies(), true, CookiesDomains).GetAwaiter().GetResult();
                     response = jsonData.Item1;
                 }
@@ -181,7 +170,7 @@ namespace CommonPluginsStores.GameJolt
         public override Tuple<string, ObservableCollection<GameAchievement>> GetAchievementsSchema(string id)
         {
             string cachePath = Path.Combine(PathAchievementsData, $"{id}.json");
-            Tuple<string, ObservableCollection<GameAchievement>> data = FileDataService.LoadData<Tuple<string, ObservableCollection<GameAchievement>>>(cachePath, 1440);
+            Tuple<string, ObservableCollection<GameAchievement>> data = FileDataTools.LoadData<Tuple<string, ObservableCollection<GameAchievement>>>(cachePath, 1440);
 
             if (data == null || !(data.Item2?.Any() ?? false))
             {
@@ -191,9 +180,7 @@ namespace CommonPluginsStores.GameJolt
 
                 if (response.IsNullOrEmpty())
                 {
-                    Logger.Warn($"Empty trophies schema payload for game {id}, retrying once.");
-                    Common.LogDebug($"[GameJoltApi] Empty schema response for {url}, throttled retry with interval {ApiRequestMinInterval.TotalMilliseconds}ms.");
-                    WaitForApiRateLimit();
+                    Thread.Sleep(1000);
                     jsonData = Web.DownloadJsonDataWebView(url, GetStoredCookies(), true, CookiesDomains).GetAwaiter().GetResult();
                     response = jsonData.Item1;
                 }
@@ -273,7 +260,7 @@ namespace CommonPluginsStores.GameJolt
                             Match match = Regex.Match(src, @"<div[^>]*class=""-username"">(.*?)<\/div>");
                             if (match.Success && match.Groups.Count > 1)
                             {
-                                _ = SetStoredCookies(GetWebCookies(false));
+                                _ = SetStoredCookies(GetWebCookies(true));
 
                                 string user = match.Groups[1].Value.Replace("Hey @", string.Empty, StringComparison.InvariantCultureIgnoreCase);
                                 Profile profile = GetUser(user);
@@ -292,7 +279,7 @@ namespace CommonPluginsStores.GameJolt
                                     SaveCurrentUser();
                                     //_ = GetCurrentAccountInfos();
 
-                                    LogInfo("logged");
+                                    Logger.Info($"{ClientName} logged");
 
                                     webView.NavigateAndWait(CurrentAccountInfos.Link);
                                 }
@@ -303,7 +290,7 @@ namespace CommonPluginsStores.GameJolt
                     }
                 };
 
-                Common.LogDebug("[GameJoltApi] Login: skipping DeleteDomainCookies; shared WebView SSO jar preserved for other plugins.");
+                CookiesDomains.ForEach(x => { webView.DeleteDomainCookies(x); });
                 webView.Navigate(UrlLogin);
                 _ = webView.OpenDialog();
             }

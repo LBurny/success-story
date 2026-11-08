@@ -1,5 +1,4 @@
-﻿using CommonPluginsShared.UI;
-using System;
+﻿using System;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -64,11 +63,11 @@ namespace CommonPluginsShared.Controls
             {
                 if ((bool)e.NewValue)
                 {
-                    obj.PreviewMouseWheel += UIHelper.HandlePreviewMouseWheel;
+                    obj.PreviewMouseWheel += UI.HandlePreviewMouseWheel;
                 }
                 else
                 {
-                    obj.PreviewMouseWheel -= UIHelper.HandlePreviewMouseWheel;
+                    obj.PreviewMouseWheel -= UI.HandlePreviewMouseWheel;
                 }
             }
         }

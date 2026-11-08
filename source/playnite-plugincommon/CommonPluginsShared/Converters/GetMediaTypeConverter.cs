@@ -1,16 +1,13 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Windows.Data;
 
 namespace CommonPluginsShared.Converters
 {
-    /// <summary>
-    /// Returns a font icon based on media file extension (Video or Image).
-    /// </summary>
     public class GetMediaTypeConverter : IValueConverter
     {
-        private static readonly HashSet<string> VideoExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        private static readonly HashSet<string> VideoExtensions = new HashSet<string>
         {
             ".mkv", ".mp4", ".avi", ".webm"
         };
@@ -19,10 +16,10 @@ namespace CommonPluginsShared.Converters
         {
             try
             {
-                string strValue = value as string;
+                var strValue = value as string;
                 if (!string.IsNullOrEmpty(strValue))
                 {
-                    string ext = System.IO.Path.GetExtension(strValue);
+                    var ext = System.IO.Path.GetExtension(strValue)?.ToLowerInvariant();
                     if (string.IsNullOrEmpty(ext))
                     {
                         return "\ueb16";
@@ -31,6 +28,10 @@ namespace CommonPluginsShared.Converters
                     if (VideoExtensions.Contains(ext))
                     {
                         return "\ueb13";
+                    }
+                    if (ext == ".webp")
+                    {
+                        return "\ueb16 \ueb13";
                     }
 
                     return "\ueb16";

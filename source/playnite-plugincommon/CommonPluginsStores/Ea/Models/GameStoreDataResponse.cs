@@ -380,7 +380,7 @@ namespace CommonPluginsStores.Ea.Models
         public string Description { get; set; }
 
         [SerializationPropertyName("contentIncluded")]
-        public object ContentIncluded { get; set; }
+        public bool ContentIncluded { get; set; }
     }
 
     public class BuyUrl

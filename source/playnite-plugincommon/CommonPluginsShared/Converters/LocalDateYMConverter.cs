@@ -1,58 +1,63 @@
 ﻿using CommonPlayniteShared;
+using Playnite.SDK;
 using System;
+using System.Drawing.Imaging;
 using System.Globalization;
+using System.IO;
 using System.Text.RegularExpressions;
+using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Markup;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 
 namespace CommonPluginsShared.Converters
 {
-    /// <summary>
-    /// Converts a DateTime to a Year-Month string based on the current culture's short date pattern.
-    /// tries to remove the day part from the pattern.
-    /// </summary>
     public class LocalDateYMConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             try
             {
-                if (value is DateTime dt && dt != default)
+                if (value != null && (DateTime)value != default(DateTime))
                 {
-                    string shortDatePattern = CultureInfo.CurrentCulture.DateTimeFormat.ShortDatePattern;
-                    string[] result = Regex.Split(shortDatePattern, @"[/\.\- ]");
-                    string ymDatePattern = string.Empty;
-
-                    foreach (string str in result)
+                    string ShortDatePattern = CultureInfo.CurrentCulture.DateTimeFormat.ShortDatePattern;
+                    string[] result = Regex.Split(ShortDatePattern, @"[/\.\- ]");
+                    string YMDatePattern = string.Empty;
+                    foreach(string str in result)
                     {
-                        if (!str.IndexOf("d", StringComparison.InvariantCultureIgnoreCase).Equals(-1))
+                        if (!str.Contains("d", StringComparison.InvariantCultureIgnoreCase))
                         {
-                            continue;
-                        }
-
-                        if (string.IsNullOrEmpty(ymDatePattern))
-                        {
-                            ymDatePattern = str;
-                        }
-                        else
-                        {
-                            ymDatePattern += CultureInfo.CurrentCulture.DateTimeFormat.DateSeparator + str;
+                            if (YMDatePattern.IsNullOrEmpty())
+                            {
+                                YMDatePattern = str;
+                            }
+                            else
+                            {
+                                YMDatePattern += CultureInfo.CurrentCulture.DateTimeFormat.DateSeparator + str;
+                            }
                         }
                     }
 
-                    return dt.ToLocalTime().ToString(ymDatePattern);
+                    DateTime dt = ((DateTime)value).ToLocalTime();
+                    return dt.ToString(YMDatePattern);
+                }
+                else
+                {
+                    return string.Empty;
                 }
             }
             catch (Exception ex)
             {
                 Common.LogError(ex, false);
+                return string.Empty;
             }
-
-            return string.Empty;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            throw new NotSupportedException();
+            throw new NotImplementedException();
         }
     }
 }

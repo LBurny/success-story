@@ -1,5 +1,4 @@
-using CommonPluginsShared.Interfaces;
-using Playnite.SDK;
+﻿using Playnite.SDK;
 using Playnite.SDK.Data;
 using Playnite.SDK.Models;
 using CommonPlayniteShared;
@@ -27,7 +26,7 @@ namespace CommonPluginsShared
     /// </summary>
     public class PlayniteTools
     {
-        private static readonly ILogger Logger = LogManager.GetLogger();
+        private static ILogger Logger => LogManager.GetLogger();
 
         private static List<Emulator> ListEmulators { get; set; } = null;
 
@@ -78,11 +77,8 @@ namespace CommonPluginsShared
 
             ScreenshotsVisualizer,
             HowLongToBeat,
-            PlayniteAchievements,
 
-            XCloud,
-
-            SystemChecker
+            XCloud
         }
 
         /// <summary>
@@ -124,11 +120,8 @@ namespace CommonPluginsShared
 
             { new Guid("C6C8276F-91BF-48E5-A1D1-4BEE0B493488"), ExternalPlugin.ScreenshotsVisualizer },
             { new Guid("E08CD51F-9C9A-4EE3-A094-FDE03B55492F"), ExternalPlugin.HowLongToBeat },
-            { new Guid("E6AAD2C9-6E06-4D8D-AC55-AC3B252B5F7B"), ExternalPlugin.PlayniteAchievements },
-
-            { new Guid("5BEFAF7A-A0AF-4CE2-992C-BC048D94E71B"), ExternalPlugin.XCloud },
-
-            { new Guid("E248B230-6EDF-41EA-A3C3-7861FA267263"), ExternalPlugin.SystemChecker }
+            
+            { new Guid("5BEFAF7A-A0AF-4CE2-992C-BC048D94E71B"), ExternalPlugin.XCloud }
         };
 
         /// <summary>
@@ -150,6 +143,12 @@ namespace CommonPluginsShared
         public static Guid GetPluginId(ExternalPlugin externalPlugin)
         {
             return PluginsById.FirstOrDefault(x => x.Value == externalPlugin).Key;
+        }
+
+        [Obsolete]
+        public static bool IsDisabledPlaynitePlugins(string pluginName)
+        {
+            return DisabledPlugins?.Contains(pluginName) ?? false;
         }
 
         /// <summary>
@@ -286,227 +285,6 @@ namespace CommonPluginsShared
             List<Emulator> ListEmulators = GetListEmulators();
             return game.GameActions.Where(x => x.IsPlayAction && ListEmulators.Any(y => y.Id == x?.EmulatorId)).Count() > 0;
         }
-
-		/// <summary>
-		/// Returns the exclusion reason when a game fails library filters, or <c>null</c> when the game is included.
-		/// </summary>
-		public static string GetLibraryFilterExclusionReason(Game game, IPluginSettings settings, bool includeHidden = false)
-		{
-			if (game == null)
-			{
-				return "game is null";
-			}
-
-			if (settings == null)
-			{
-				return "settings is null";
-			}
-
-			if (!includeHidden && game.Hidden)
-			{
-				return "hidden";
-			}
-
-			if (!settings.IncludeEmulatedGames && IsGameEmulated(game))
-			{
-				return "emulated";
-			}
-
-			if (!IsSourceEnabledForLibrary(game, settings))
-			{
-				return "source";
-			}
-
-			return null;
-		}
-
-		/// <summary>
-		/// Returns <c>true</c> when the game source passes the configured source filter.
-		/// </summary>
-		public static bool IsSourceEnabledForLibrary(Game game, IPluginSettings settings)
-		{
-			if (settings == null)
-			{
-				return true;
-			}
-
-			string sourceName = GetSourceName(game);
-
-			switch (settings.LibrarySourceFilterMode)
-			{
-				case SourceFilterMode.Whitelist:
-					if (settings.EnabledSources == null || settings.EnabledSources.Count == 0)
-					{
-						return false;
-					}
-
-					return settings.EnabledSources.Any(enabled => SourceNamesMatch(sourceName, enabled));
-
-				case SourceFilterMode.Blacklist:
-					if (settings.ExcludedSources == null || settings.ExcludedSources.Count == 0)
-					{
-						return true;
-					}
-
-					return !settings.ExcludedSources.Any(excluded => SourceNamesMatch(sourceName, excluded));
-
-				case SourceFilterMode.All:
-				default:
-					return true;
-			}
-		}
-
-		/// <summary>
-		/// Returns a short description of the active source filter for logging.
-		/// </summary>
-		public static string FormatSourceFilterForLog(IPluginSettings settings)
-		{
-			if (settings == null)
-			{
-				return "All";
-			}
-
-			switch (settings.LibrarySourceFilterMode)
-			{
-				case SourceFilterMode.Whitelist:
-					return settings.EnabledSources == null || settings.EnabledSources.Count == 0
-						? "Whitelist=[]"
-						: string.Format("Whitelist=[{0}]", string.Join(", ", settings.EnabledSources));
-
-				case SourceFilterMode.Blacklist:
-					return settings.ExcludedSources == null || settings.ExcludedSources.Count == 0
-						? "Blacklist=[]"
-						: string.Format("Blacklist=[{0}]", string.Join(", ", settings.ExcludedSources));
-
-				case SourceFilterMode.All:
-				default:
-					return "All";
-			}
-		}
-
-		/// <summary>
-		/// Compares a game source name against a filter entry (case-insensitive, partial match).
-		/// </summary>
-		public static bool SourceNamesMatch(string sourceName, string enabledSource)
-		{
-			if (sourceName.IsNullOrEmpty() || enabledSource.IsNullOrEmpty())
-			{
-				return false;
-			}
-
-			return sourceName.Equals(enabledSource, StringComparison.OrdinalIgnoreCase)
-				|| sourceName.IndexOf(enabledSource, StringComparison.OrdinalIgnoreCase) >= 0
-				|| enabledSource.IndexOf(sourceName, StringComparison.OrdinalIgnoreCase) >= 0;
-		}
-
-		/// <summary>
-		/// Returns a human-readable exclusion detail for logging.
-		/// </summary>
-		public static string GetLibraryFilterExclusionDetail(Game game, string reason)
-		{
-			if (reason == "source")
-			{
-				return string.Format("source ({0})", GetSourceName(game));
-			}
-
-			return reason;
-		}
-
-		/// <summary>
-		/// Determines whether a game should be included in plugin library operations
-		/// based on the configured library filters.
-		/// </summary>
-		/// <param name="game">The game to evaluate.</param>
-		/// <param name="settings">Plugin settings containing library filter options.</param>
-		/// <param name="includeHidden">When <c>false</c>, hidden games are excluded.</param>
-		/// <returns><c>true</c> if the game passes all active filters; otherwise <c>false</c>.</returns>
-		public static bool ShouldIncludeLibraryGame(Game game, IPluginSettings settings, bool includeHidden = false)
-		{
-			return GetLibraryFilterExclusionReason(game, settings, includeHidden) == null;
-		}
-
-		/// <summary>
-		/// Filters a game collection using <see cref="ShouldIncludeLibraryGame"/>.
-		/// </summary>
-		/// <param name="games">Games to filter.</param>
-		/// <param name="settings">Plugin settings containing library filter options.</param>
-		/// <param name="includeHidden">When <c>false</c>, hidden games are excluded.</param>
-		/// <returns>Games that pass all active library filters.</returns>
-		public static IEnumerable<Game> FilterLibraryGames(IEnumerable<Game> games, IPluginSettings settings, bool includeHidden = false)
-		{
-			if (games == null || settings == null)
-			{
-				return Enumerable.Empty<Game>();
-			}
-
-			List<Game> input = games as List<Game> ?? games.ToList();
-			List<Game> included = new List<Game>(input.Count);
-			int excludedHidden = 0;
-			int excludedEmulated = 0;
-			int excludedSource = 0;
-
-			foreach (Game game in input)
-			{
-				string reason = GetLibraryFilterExclusionReason(game, settings, includeHidden);
-				if (reason == null)
-				{
-					included.Add(game);
-					continue;
-				}
-
-				if (reason == "hidden")
-				{
-					excludedHidden++;
-				}
-				else if (reason == "emulated")
-				{
-					excludedEmulated++;
-				}
-				else if (reason == "source")
-				{
-					excludedSource++;
-				}
-			}
-
-			LogLibraryFilterSummary("FilterLibraryGames", input.Count, included.Count, settings, excludedEmulated, excludedHidden, excludedSource);
-
-			return included;
-		}
-
-		/// <summary>
-		/// Logs a single-game library filter exclusion for diagnostic purposes.
-		/// </summary>
-		public static void LogLibraryFilterExclusion(string context, Game game, string reason)
-		{
-			Common.LogDebug(string.Format(
-				"[LibraryFilter] {0}: excluded '{1}' ({2}) — reason={3}",
-				context,
-				game?.Name ?? "?",
-				game?.Id,
-				GetLibraryFilterExclusionDetail(game, reason) ?? "unknown"));
-		}
-
-		/// <summary>
-		/// Logs batch library filter results when at least one game was excluded.
-		/// </summary>
-		public static void LogLibraryFilterSummary(string context, int beforeCount, int afterCount, IPluginSettings settings, int excludedEmulated, int excludedHidden, int excludedSource = 0)
-		{
-			if (beforeCount == afterCount)
-			{
-				return;
-			}
-
-			Common.LogDebug(string.Format(
-				"[LibraryFilter] {0}: {1} -> {2} games (IncludeEmulatedGames={3}, SourceFilter={4}, excluded emulated={5}, excluded hidden={6}, excluded source={7})",
-				context,
-				beforeCount,
-				afterCount,
-				settings?.IncludeEmulatedGames ?? true,
-				FormatSourceFilterForLog(settings),
-				excludedEmulated,
-				excludedHidden,
-				excludedSource));
-		}
 
 		/// <summary>
 		/// Checks if a game uses the RPCS3 emulator.
@@ -650,7 +428,7 @@ namespace CommonPluginsShared
                     {
                         _ = Task.Run(() =>
                         {
-                            Common.LogDebug($"DownloadFileImage is missing - {fileName}");
+                            Common.LogDebug(true, $"DownloadFileImage is missing - {fileName}");
                             Web.DownloadFileImage(fileName, options.Url, PlaynitePaths.DataCachePath, pluginName).GetAwaiter().GetResult();
                         });
                     }
@@ -797,7 +575,6 @@ namespace CommonPluginsShared
                 case ExternalPlugin.None:
                 case ExternalPlugin.SuccessStory:
                 case ExternalPlugin.CheckDlc:
-                case ExternalPlugin.PlayniteAchievements:
 
                 default:
                     return string.Empty;
@@ -1289,31 +1066,5 @@ namespace CommonPluginsShared
                 Common.LogError(ex, false);
             }
         }
-
-
-		public static string FormatTimeAgo(TimeSpan timeSpan)
-		{
-			if (timeSpan.TotalDays >= 365)
-			{
-				int years = (int)(timeSpan.TotalDays / 365);
-				return string.Format(ResourceProvider.GetString(years == 1 ? "LOCCommonYearAgo" : "LOCCommonYearsAgo"), years);
-			}
-			if (timeSpan.TotalDays >= 30)
-			{
-				int months = (int)(timeSpan.TotalDays / 30);
-				return string.Format(ResourceProvider.GetString(months == 1 ? "LOCCommonMonthAgo" : "LOCCommonMonthsAgo"), months);
-			}
-			if (timeSpan.TotalDays >= 1)
-			{
-				int days = (int)timeSpan.TotalDays;
-				return string.Format(ResourceProvider.GetString(days == 1 ? "LOCCommonDayAgo" : "LOCCommonDaysAgo"), days);
-			}
-			if (timeSpan.TotalHours >= 1)
-			{
-				int hours = (int)timeSpan.TotalHours;
-				return string.Format(ResourceProvider.GetString(hours == 1 ? "LOCCommonHourAgo" : "LOCCommonHoursAgo"), hours);
-			}
-			return ResourceProvider.GetString("LOCCommonToday");
-		}
-	}
+    }
 }

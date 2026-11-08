@@ -1,41 +1,49 @@
+﻿using System.Collections.Generic;
+using CommonPluginsStores.Models;
 using CommonPluginsStores.Models.Enumerations;
+using CommonPluginsStores.Models.Interfaces;
+using Playnite.SDK;
 
 namespace CommonPluginsControls.Stores.Steam
 {
-    public class PanelViewModel : StorePanelViewModelBase
+    public class PanelViewModel : ObservableObject
     {
-        private bool _useApi = true;
-
-        public bool UseApi
+        private IStoreApi _storeApi;
+        internal IStoreApi StoreApi
         {
-            get => _useApi;
+            get => _storeApi;
             set
             {
-                SetValue(ref _useApi, value);
-                OnPropertyChanged(nameof(ShowApiKeyField));
-                OnPropertyChanged(nameof(IsApiKeyEntryEnabled));
+                _storeApi = value;
+                OnPropertyChanged(nameof(StoreApi));
+                OnPropertyChanged(nameof(User));
+                OnPropertyChanged(nameof(AuthStatus));
             }
         }
+        public AccountInfos User => StoreApi?.CurrentAccountInfos;
 
-        /// <summary>
-        /// API key field: optional under forced login (<see cref="ForceAuth"/>), or when API mode is enabled without ForceAuth.
-        /// </summary>
-        public bool ShowApiKeyField => ForceAuth || UseApi;
+        private bool useApi = true;
+        public bool UseApi { get => useApi; set => SetValue(ref useApi, value); }
 
-        /// <summary>
-        /// API key can be edited whenever the field is shown (forced-auth plugins keep login mandatory and key optional).
-        /// </summary>
-        public bool IsApiKeyEntryEnabled => ForceAuth || UseApi;
+        private bool useAuth = true;
+        public bool UseAuth { get => useAuth; set => SetValue(ref useAuth, value); }
 
-        protected override string LoginErrorContext => "Steam login failed";
+        private bool forceAuth = false;
+        public bool ForceAuth { get => forceAuth; set => SetValue(ref forceAuth, value); }
 
-        protected override string LogoutErrorContext => "Steam logout failed";
+        public AuthStatus AuthStatus => StoreApi == null ? AuthStatus.Failed : StoreApi.IsUserLoggedIn ? AuthStatus.Ok : AuthStatus.AuthRequired;
 
-        protected override void NotifyAuthUiProperties()
+        public RelayCommand<object> LoginCommand => new RelayCommand<object>((a) =>
         {
-            base.NotifyAuthUiProperties();
-            OnPropertyChanged(nameof(ShowApiKeyField));
-            OnPropertyChanged(nameof(IsApiKeyEntryEnabled));
+            StoreApi.Login();
+            OnPropertyChanged(nameof(AuthStatus));
+            OnPropertyChanged(nameof(User));
+        });
+
+        public void ResetIsUserLoggedIn()
+        {
+            StoreApi.ResetIsUserLoggedIn();
+            OnPropertyChanged(nameof(AuthStatus));
         }
     }
 }

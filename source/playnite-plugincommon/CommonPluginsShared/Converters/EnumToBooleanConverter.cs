@@ -1,24 +1,23 @@
 ﻿using System;
-using System.Globalization;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using System.Windows.Data;
 using System.Windows.Markup;
 
 namespace CommonPluginsShared.Converters
 {
-    /// <summary>
-    /// Converts an Enum value to a Boolean based on a parameter.
-    /// Used for RadioButtons binding to Enum properties.
-    /// </summary>
     public class EnumToBooleanConverter : MarkupExtension, IValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
         {
-            return value?.Equals(parameter) ?? false;
+            return value.Equals(parameter);
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
         {
-            return value?.Equals(true) == true ? parameter : Binding.DoNothing;
+            return value.Equals(true) ? parameter : Binding.DoNothing;
         }
 
         public override object ProvideValue(IServiceProvider serviceProvider)

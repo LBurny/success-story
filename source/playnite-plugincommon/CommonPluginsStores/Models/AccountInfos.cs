@@ -70,16 +70,8 @@ namespace CommonPluginsStores.Models
         public AccountStatus AccountStatus { get => _accountStatus; set => SetValue(ref _accountStatus, value); }
 
         /// <summary>
-        /// Gets or sets the Steam Web API key for this account (Steam store only).
-        /// Persisted in shared <c>StoresData/*_User.dat</c>; other stores do not use this field.
+        /// Gets or sets the API key associated with this account.
         /// </summary>
         public string ApiKey { get; set; }
-
-        private bool _sessionLoggedOutByUser;
-
-        /// <summary>
-        /// When true, automatic SSO cookie refresh is suppressed until the user authenticates explicitly.
-        /// </summary>
-        public bool SessionLoggedOutByUser { get => _sessionLoggedOutByUser; set => SetValue(ref _sessionLoggedOutByUser, value); }
     }
 }

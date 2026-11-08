@@ -159,7 +159,7 @@
         /// <param name="name"></param>
         /// <param name="returnEmpty"></param>
         /// <returns></returns>
-        public static string Get(string name, bool returnEmpty = false, bool returnDefault = false)
+        public static string Get(string name, bool returnEmpty = false, bool returnDefault = true)
         {
             string stringReturn = string.Empty;
 
@@ -219,7 +219,6 @@
                     stringReturn = indiegala;
                     break;
                 case "steam":
-                case "steam family sharing":
                     stringReturn = steam;
                     break;
                 case "gog":

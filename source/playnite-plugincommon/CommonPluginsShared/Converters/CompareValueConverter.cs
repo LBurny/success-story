@@ -1,9 +1,16 @@
 ﻿using CommonPlayniteShared;
 using Playnite.SDK;
 using System;
+using System.Drawing.Imaging;
 using System.Globalization;
+using System.IO;
+using System.Text.RegularExpressions;
+using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Markup;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 
 namespace CommonPluginsShared.Converters
 {
@@ -13,70 +20,46 @@ namespace CommonPluginsShared.Converters
         {
             try
             {
-                if (values == null || values.Length < 2)
+                int.TryParse(((string)values[0]).Replace("%", string.Empty).Replace("°", string.Empty), out int ValueData);
+                int.TryParse((string)values[1], out int ValueControl);
+
+                bool Enable = (bool)values[2];
+
+                if (Enable)
                 {
-                    return ResourceProvider.GetResource("TextBrush");
-                }
-
-                // Handle string cleaning and parsing
-                string val0 = values[0]?.ToString()
-                    ?.Replace("%", string.Empty)
-                    ?.Replace("°", string.Empty)
-                    ?.Replace("W", string.Empty)
-                    ?.Replace("w", string.Empty);
-                string val1 = values[1]?.ToString()
-                    ?.Replace("%", string.Empty)
-                    ?.Replace("°", string.Empty)
-                    ?.Replace("W", string.Empty)
-                    ?.Replace("w", string.Empty);
-
-                if (!int.TryParse(val0, out int valueData) || !int.TryParse(val1, out int valueControl))
-                {
-                    return ResourceProvider.GetResource("TextBrush");
-                }
-
-                // Threshold 0 = indicator off for this sensor (independent of EnableWarm).
-                if (valueControl <= 0)
-                {
-                    return ResourceProvider.GetResource("TextBrush");
-                }
-
-                bool enable = false;
-                if (values.Length > 2 && values[2] is bool boolValue)
-                {
-                    enable = boolValue;
-                }
-
-                if (enable)
-                {
-                    int.TryParse(parameter?.ToString(), out int parameterValue);
-
+                    int.TryParse((string)parameter, out int parameterValue);
                     if (parameterValue == 0)
                     {
-                        // Higher is better (or standard check)
-                        if (valueData > valueControl)
+                        if (ValueData > ValueControl)
                         {
                             return ResourceProvider.GetResource("TextBrush");
                         }
-                        return Brushes.Orange;
+                        else
+                        {
+                            return Brushes.Orange;
+                        }
                     }
                     else
                     {
-                        // Lower is better
-                        if (valueData < valueControl)
+                        if (ValueData < ValueControl)
                         {
                             return ResourceProvider.GetResource("TextBrush");
                         }
-                        return Brushes.Orange;
+                        else
+                        {
+                            return Brushes.Orange;
+                        }
                     }
                 }
-
-                return ResourceProvider.GetResource("TextBrush");
+                else
+                {
+                    return ResourceProvider.GetResource("TextBrush");
+                }
             }
             catch (Exception ex)
             {
                 Common.LogError(ex, false);
-                return ResourceProvider.GetResource("TextBrush");
+                return (Brushes)ResourceProvider.GetResource("TextBrush");
             }
         }
 

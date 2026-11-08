@@ -1,16 +1,12 @@
-using Playnite.SDK;
+﻿using Playnite.SDK;
 using System;
 using System.Collections.Generic;
 
 namespace CommonPluginsShared
 {
-    /// <summary>
-    /// Provides helper methods to convert Playnite language codes
-    /// into platform specific language identifiers (Steam, GOG, etc.).
-    /// </summary>
     public class CodeLang
     {
-        private static readonly ILogger Logger = LogManager.GetLogger();
+        private static ILogger Logger => LogManager.GetLogger();
 
         // Static dictionary mapping Playnite language codes to Steam language codes
         private static readonly Dictionary<string, string> _steamLangMap = new Dictionary<string, string>
@@ -47,19 +43,13 @@ namespace CommonPluginsShared
             { "zh_TW", "tchinese" },
         };
 
-        /// <summary>
-        /// Gets the mapping between Playnite language codes and Steam language codes.
-        /// </summary>
         private static Dictionary<string, string> SteamLangMap => _steamLangMap;
 
 
         /// <summary>
-        /// Extracts the country/region prefix from a Playnite language code.
+        /// Extracts country.
+        /// Returns first two characters.
         /// </summary>
-        /// <param name="playniteLanguage">Playnite language code (for example, "en_US").</param>
-        /// <returns>
-        /// The first two characters of the normalized language code, or "en" if the value is invalid.
-        /// </returns>
         public static string GetCountryFromFirst(string playniteLanguage)
         {
             playniteLanguage = Normalize(playniteLanguage);
@@ -67,12 +57,9 @@ namespace CommonPluginsShared
         }
 
         /// <summary>
-        /// Extracts the country/region suffix from a Playnite language code.
+        /// Extracts country.
+        /// Returns last two characters.
         /// </summary>
-        /// <param name="playniteLanguage">Playnite language code (for example, "en_US").</param>
-        /// <returns>
-        /// The last two characters of the normalized language code, or "US" if the value is invalid.
-        /// </returns>
         public static string GetCountryFromLast(string playniteLanguage)
         {
             playniteLanguage = Normalize(playniteLanguage);
@@ -84,12 +71,9 @@ namespace CommonPluginsShared
         // -------------------------
 
         /// <summary>
-        /// Converts a Playnite language code to its Steam language identifier.
+        /// Converts Playnite language to Steam language code.
+        /// Defaults to "english" if no match is found.
         /// </summary>
-        /// <param name="playniteLanguage">Playnite language code.</param>
-        /// <returns>
-        /// The corresponding Steam language code if mapped; otherwise, "english".
-        /// </returns>
         public static string GetSteamLang(string playniteLanguage)
         {
             playniteLanguage = Normalize(playniteLanguage);
@@ -101,51 +85,17 @@ namespace CommonPluginsShared
         // -------------------------
 
         /// <summary>
-        /// Converts a Playnite language code to a GOG products/catalog locale.
+        /// Converts Playnite language to GOG language code.
+        /// Defaults to "en-US" if unsupported.
         /// </summary>
-        /// <param name="playniteLanguage">Playnite language code.</param>
-        /// <returns>
-        /// A region-qualified locale (for example <c>fr-FR</c>). Short codes such as <c>fr</c>
-        /// often make the products API return English copy; Chinese uses <c>zh-Hans</c> / <c>zh-Hant</c>.
-        /// Do not lowercase the result before calling <c>api.gog.com/products</c> (<c>fr-fr</c> ≠ <c>fr-FR</c>).
-        /// </returns>
         public static string GetGogLang(string playniteLanguage)
         {
-            playniteLanguage = Normalize(playniteLanguage);
-            if (playniteLanguage == "zh_CN")
-            {
-                return "zh-Hans";
-            }
+            if (playniteLanguage == "zh_CN") return "zh-Hans";
+            if (playniteLanguage == "zh_TW") return "zh-Hant";
 
-            if (playniteLanguage == "zh_TW")
-            {
-                return "zh-Hant";
-            }
-
-            return playniteLanguage.Replace("_", "-");
-        }
-
-        /// <summary>
-        /// Converts a Playnite language code to a GOG site path / changeLanguage code.
-        /// </summary>
-        /// <param name="playniteLanguage">Playnite language code.</param>
-        /// <returns>
-        /// A short site language (for example <c>fr</c>), or <c>zh-Hans</c> / <c>zh-Hant</c> for Chinese.
-        /// </returns>
-        public static string GetGogSiteLang(string playniteLanguage)
-        {
-            playniteLanguage = Normalize(playniteLanguage);
-            if (playniteLanguage == "zh_CN")
-            {
-                return "zh-Hans";
-            }
-
-            if (playniteLanguage == "zh_TW")
-            {
-                return "zh-Hant";
-            }
-
-            return GetShortLang(playniteLanguage);
+            string shortLang = GetShortLang(playniteLanguage);
+            string[] arrayLang = { "de", "en", "es", "fr", "ja", "ko", "zh-Hans", "zh-Hant" };
+            return arrayLang.ContainsString(shortLang, StringComparison.OrdinalIgnoreCase) ? shortLang : "en";
         }
 
         // -------------------------
@@ -153,12 +103,9 @@ namespace CommonPluginsShared
         // -------------------------
 
         /// <summary>
-        /// Converts a Playnite language code to its Genshin Impact language identifier.
+        /// Converts Playnite language to Genshin Impact language code.
+        /// Defaults to "en" if unsupported.
         /// </summary>
-        /// <param name="playniteLanguage">Playnite language code.</param>
-        /// <returns>
-        /// The corresponding Genshin Impact language code if supported; otherwise, "en".
-        /// </returns>
         public static string GetGenshinLang(string playniteLanguage)
         {
             playniteLanguage = Normalize(playniteLanguage);
@@ -178,12 +125,9 @@ namespace CommonPluginsShared
         // -------------------------
 
         /// <summary>
-        /// Converts a Playnite language code to its Wuthering Waves language identifier.
+        /// Converts Playnite language to Wuthering Waves language code.
+        /// Defaults to "en" if unsupported.
         /// </summary>
-        /// <param name="playniteLanguage">Playnite language code.</param>
-        /// <returns>
-        /// The corresponding Wuthering Waves language code if supported; otherwise, "en".
-        /// </returns>
         public static string GetWuWaLang(string playniteLanguage)
         {
             playniteLanguage = Normalize(playniteLanguage);
@@ -201,28 +145,11 @@ namespace CommonPluginsShared
         // -------------------------
 
         /// <summary>
-        /// Converts a Playnite language code to an EA App/Origin language identifier.
+        /// Converts Playnite language to Origin language code.
         /// </summary>
-        /// <param name="playniteLanguage">Playnite language code.</param>
-        /// <returns>The normalized language code.</returns>
         public static string GetEaLang(string playniteLanguage)
         {
             return Normalize(playniteLanguage);
-        }
-
-        /// <summary>
-        /// Legacy alias kept for store clients that still call <see cref="GetEaLang"/>.
-        /// </summary>
-        public static string GetOriginLang(string playniteLanguage) => GetEaLang(playniteLanguage);
-
-        /// <summary>
-        /// Returns the country portion of a Playnite language code (for example "en_US" → "US").
-        /// </summary>
-        public static string GetEpicLangCountry(string playniteLanguage)
-        {
-            playniteLanguage = Normalize(playniteLanguage);
-            string[] parts = playniteLanguage.Split('_');
-            return parts.Length > 1 ? parts[1] : "US";
         }
 
         // -------------------------
@@ -230,10 +157,9 @@ namespace CommonPluginsShared
         // -------------------------
 
         /// <summary>
-        /// Converts a Playnite language code to an Epic Games language identifier.
+        /// Converts Playnite language to Epic Games language code.
+        /// Replaces "_" with "-".
         /// </summary>
-        /// <param name="playniteLanguage">Playnite language code.</param>
-        /// <returns>The normalized language code with underscores replaced by hyphens.</returns>
         public static string GetEpicLang(string playniteLanguage)
         {
             playniteLanguage = Normalize(playniteLanguage);
@@ -245,10 +171,8 @@ namespace CommonPluginsShared
         // -------------------------
 
         /// <summary>
-        /// Converts a Playnite language code to an Xbox language identifier.
+        /// Converts Playnite language to Xbox language code.
         /// </summary>
-        /// <param name="playniteLanguage">Playnite language code.</param>
-        /// <returns>The normalized language code with underscores replaced by hyphens.</returns>
         public static string GetXboxLang(string playniteLanguage)
         {
             playniteLanguage = Normalize(playniteLanguage);
@@ -260,13 +184,8 @@ namespace CommonPluginsShared
         // -------------------------
 
         /// <summary>
-        /// Normalizes a raw language value into a standard Playnite language code.
+        /// Normalize lang to standard Playnite code "en_US".
         /// </summary>
-        /// <param name="lang">Input language value (for example, "english" or "en_US").</param>
-        /// <returns>
-        /// The normalized Playnite language code (for example, "en_US"). If the value is
-        /// null or empty, "en_US" is returned and a warning is logged.
-        /// </returns>
         private static string Normalize(string lang)
         {
             if (lang.IsNullOrEmpty())
@@ -278,10 +197,8 @@ namespace CommonPluginsShared
         }
 
         /// <summary>
-        /// Gets the short language code from a Playnite language code.
+        /// Returns the short part of the language code (e.g., "en" from "en_US").
         /// </summary>
-        /// <param name="playniteLanguage">Playnite language code (for example, "en_US").</param>
-        /// <returns>The lower-cased primary language tag (for example, "en").</returns>
         private static string GetShortLang(string playniteLanguage)
         {
             playniteLanguage = Normalize(playniteLanguage);

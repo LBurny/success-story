@@ -20,6 +20,9 @@ using System.Windows.Shapes;
 
 namespace CommonPluginsControls.Views
 {
+    /// <summary>
+    /// Logique d'interaction pour ListDataWithoutGame.xaml
+    /// </summary>
     public partial class ListDataWithoutGame : UserControl
     {
         private IPluginDatabase PluginDatabase { get; set; }
@@ -69,7 +72,6 @@ namespace CommonPluginsControls.Views
                 ShowMinimizeButton = false,
                 ShowMaximizeButton = false,
                 ShowCloseButton = true,
-                EnableWindowPersistence = false
             };
 
             var data = (DataGame)PART_Lb.SelectedItem;

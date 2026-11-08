@@ -1,5 +1,4 @@
 ﻿using CommonPluginsShared;
-using CommonPluginsShared.UI;
 using Playnite.SDK;
 using System;
 using System.Collections.Generic;
@@ -375,7 +374,7 @@ namespace CommonPluginsControls.Controls
             PART_ButtonSetColorGradient.Visibility = Visibility.Visible;
 
 
-            var BorderElements = UIHelper.FindVisualChildren<Border>(PART_AkrColorPicker);
+            var BorderElements = UI.FindVisualChildren<Border>(PART_AkrColorPicker);
             var BorderElement = BorderElements?.Where(x => x.Background?.ToString() == new SolidColorBrush(SimpleColor)?.ToString()).FirstOrDefault();
             if (BorderElement != null)
             {
@@ -393,7 +392,7 @@ namespace CommonPluginsControls.Controls
             PART_ButtonSetColorGradient.Visibility = Visibility.Hidden;
 
 
-            var BorderElements = UIHelper.FindVisualChildren<Border>(PART_AkrColorPicker);
+            var BorderElements = UI.FindVisualChildren<Border>(PART_AkrColorPicker);
             var BorderElement = BorderElements?.Where(x => x.Background?.ToString() == new SolidColorBrush(SimpleColor)?.ToString()).FirstOrDefault();
             if (BorderElement != null)
             {

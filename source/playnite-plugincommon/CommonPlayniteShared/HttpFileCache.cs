@@ -3,7 +3,6 @@ using CommonPlayniteShared.Common.Web;//using Playnite.Common.Web;
 using Playnite.SDK;
 using CommonPlayniteShared;//using Playnite.Settings;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -17,7 +16,6 @@ namespace CommonPlayniteShared
     {
         private static ILogger logger = LogManager.GetLogger();
         private static readonly object cacheLock = new object();
-        private static readonly ConcurrentDictionary<string, object> fileLocks = new ConcurrentDictionary<string, object>(StringComparer.OrdinalIgnoreCase);
 
         public static string CacheDirectory { get; set; } = PlaynitePaths.ImagesCachePath;
 
@@ -37,42 +35,38 @@ namespace CommonPlayniteShared
             }
 
             var cacheFile = Path.Combine(CacheDirectory, GetFileNameFromUrl(url));
-
-            if (File.Exists(cacheFile) && (new FileInfo(cacheFile)).Length != 0)
-            {
-                return cacheFile;
-            }
-
-            var fileLock = fileLocks.GetOrAdd(cacheFile, _ => new object());
-            lock (fileLock)
+            lock (cacheLock)
             {
                 if (File.Exists(cacheFile) && (new FileInfo(cacheFile)).Length != 0)
                 {
+                    //logger.Debug($"Returning {url} from file cache {cacheFile}.");
                     return cacheFile;
                 }
-
-                FileSystem.CreateDirectory(CacheDirectory);
-
-                try
+                else
                 {
-                    HttpDownloader.DownloadFile(url, cacheFile);
-                    return cacheFile;
-                }
-                catch (WebException e)
-                {
-                    if (e.Response == null)
-                    {
-                        throw;
-                    }
+                    FileSystem.CreateDirectory(CacheDirectory);
 
-                    var response = (HttpWebResponse)e.Response;
-                    if (response.StatusCode != HttpStatusCode.NotFound)
+                    try
                     {
-                        throw;
+                        HttpDownloader.DownloadFile(url, cacheFile);
+                        return cacheFile;
                     }
-                    else
+                    catch (WebException e)
                     {
-                        return string.Empty;
+                        if (e.Response == null)
+                        {
+                            throw;
+                        }
+
+                        var response = (HttpWebResponse)e.Response;
+                        if (response.StatusCode != HttpStatusCode.NotFound)
+                        {
+                            throw;
+                        }
+                        else
+                        {
+                            return string.Empty;
+                        }
                     }
                 }
             }

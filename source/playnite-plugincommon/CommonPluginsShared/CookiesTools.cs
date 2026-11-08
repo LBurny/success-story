@@ -1,4 +1,4 @@
-using CommonPlayniteShared.Common;
+﻿using CommonPlayniteShared.Common;
 using Playnite.SDK;
 using Playnite.SDK.Data;
 using System;
@@ -12,15 +12,9 @@ using System.Threading;
 
 namespace CommonPluginsShared
 {
-    /// <summary>
-    /// Encrypts, stores, and retrieves HTTP cookies for plugin WebView authentication flows.
-    /// </summary>
     public class CookiesTools
     {
         internal ILogger Logger => LogManager.GetLogger();
-
-        private static readonly object WebCookieLocksSync = new object();
-        private static readonly Dictionary<string, object> WebCookieLocksByClient = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
 
         #region Properties
 
@@ -63,200 +57,80 @@ namespace CommonPluginsShared
 
         #region Methods
 
-        /// <summary>
-        /// Loads encrypted cookies from disk for the configured client.
-        /// Expired cookies are removed before returning.
-        /// </summary>
-        /// <param name="warnIfMissing">When true, logs a warning if the cookie file is absent.</param>
-        /// <returns>The stored cookie list, or an empty list when none are available.</returns>
-        public List<HttpCookie> GetStoredCookies(bool warnIfMissing = true)
+        public List<HttpCookie> GetStoredCookies()
         {
             string message = $"No stored cookies for {ClientName}";
             List<HttpCookie> storedCookies = new List<HttpCookie>();
 
             if (File.Exists(FileCookies))
             {
-                lock (FileSystem.GetPathSyncRoot(FileCookies))
+                for (int i = 0; i < 5; i++)
                 {
-                    for (int i = 0; i < 5; i++)
+                    try
                     {
-                        try
-                        {
-                            var decrypted = Encryption.DecryptFromFile(
-                                FileCookies,
-                                Encoding.UTF8,
-                                WindowsIdentity.GetCurrent().User.Value);
+                        var decrypted = Encryption.DecryptFromFile(
+                            FileCookies,
+                            Encoding.UTF8,
+                            WindowsIdentity.GetCurrent().User.Value);
 
-                            storedCookies = Serialization.FromJson<List<HttpCookie>>(decrypted);
+                        storedCookies = Serialization.FromJson<List<HttpCookie>>(decrypted);
 
-                            storedCookies.RemoveAll(x => x.Expires != null && (DateTime)x.Expires <= DateTime.Now);
-                            return storedCookies;
-                        }
-                        catch (CryptographicException ex)
+                        storedCookies.RemoveAll(x => x.Expires != null && (DateTime)x.Expires <= DateTime.Now);
+                        return storedCookies;
+                    }
+                    catch (CryptographicException ex)
+                    {
+                        Common.LogError(ex, false, $"Failed to load saved cookies for {ClientName} (CryptographicException)");
+                        FileSystem.DeleteFile(FileCookies);
+                        return storedCookies;
+                    }
+                    catch (Exception ex)
+                    {
+                        if (i == 4)
                         {
-                            Common.LogError(ex, false, $"Failed to load saved cookies for {ClientName} (CryptographicException)");
+                            Common.LogError(ex, false, $"Failed to load saved cookies for {ClientName}");
                             FileSystem.DeleteFile(FileCookies);
                             return storedCookies;
                         }
-                        catch (Exception ex)
-                        {
-                            if (i == 4)
-                            {
-                                Common.LogError(ex, false, $"Failed to load saved cookies for {ClientName}");
-                                FileSystem.DeleteFile(FileCookies);
-                                return storedCookies;
-                            }
-                            Thread.Sleep(500);
-                        }
+                        Thread.Sleep(500);
                     }
                 }
             }
 
-            if (warnIfMissing)
-            {
-                Logger.Warn(message);
-            }
-
+            Logger.Warn(message);
             return storedCookies;
         }
 
-        /// <summary>
-        /// Encrypts and persists the provided cookies to the configured storage file.
-        /// </summary>
-        /// <param name="httpCookies">Cookies to save. Nothing is written when null or empty.</param>
-        /// <returns><c>true</c> when cookies were saved; otherwise <c>false</c>.</returns>
         public bool SetStoredCookies(List<HttpCookie> httpCookies)
         {
-            lock (FileSystem.GetPathSyncRoot(FileCookies))
+            try
             {
-                try
+                if (httpCookies != null && httpCookies.Any())
                 {
-                    httpCookies = FilterCookiesByDomains(httpCookies);
-                    if (httpCookies != null && httpCookies.Any())
-                    {
-                        Encryption.EncryptToFileSafe(
-                            FileCookies,
-                            Serialization.ToJson(httpCookies),
-                            Encoding.UTF8,
-                            WindowsIdentity.GetCurrent().User.Value);
-                        return true;
-                    }
-                    else
-                    {
-                        Logger.Warn($"No cookies saved for {PluginName}");
-                    }
+                    FileSystem.CreateDirectory(Path.GetDirectoryName(FileCookies));
+                    Encryption.EncryptToFile(
+                        FileCookies,
+                        Serialization.ToJson(httpCookies),
+                        Encoding.UTF8,
+                        WindowsIdentity.GetCurrent().User.Value);
+                    return true;
                 }
-                catch (Exception ex)
+                else
                 {
-                    Common.LogError(ex, false, "Failed to save cookies");
+                    Logger.Warn($"No cookies saved for {PluginName}");
                 }
-
-                return false;
             }
+            catch (Exception ex)
+            {
+                Common.LogError(ex, false, "Failed to save cookies");
+            }
+
+            return false;
         }
 
         /// <summary>
-        /// Deletes the encrypted cookie file for this client, if it exists.
+        /// Retrieve cookies from WebView, optionally filtered by domain and optionally deleting them.
         /// </summary>
-        public void ClearStoredCookies()
-        {
-            if (File.Exists(FileCookies))
-            {
-                FileSystem.DeleteFile(FileCookies);
-                Logger.Info($"{ClientName} stored cookies file deleted");
-                Common.LogDebug($"{ClientName} ClearStoredCookies: {FileCookies}");
-            }
-            else
-            {
-                Common.LogDebug($"{ClientName} ClearStoredCookies: no cookie file found");
-            }
-        }
-
-        /// <summary>
-        /// Injects persisted store cookies into a WebView before navigation.
-        /// </summary>
-        /// <param name="webView">Target WebView instance.</param>
-        public void InjectStoredCookies(IWebView webView)
-        {
-            if (webView == null)
-            {
-                return;
-            }
-
-            List<HttpCookie> injectCookies = GetStoredCookies(warnIfMissing: false);
-            if (injectCookies == null || injectCookies.Count == 0)
-            {
-                Common.LogDebug($"{ClientName} InjectStoredCookies: no persisted cookies; navigation relies on shared WebView SSO jar.");
-                return;
-            }
-
-            Common.LogDebug($"{ClientName} InjectStoredCookies: injecting {injectCookies.Count} cookie(s).");
-            foreach (HttpCookie cookie in injectCookies)
-            {
-                if (cookie == null)
-                {
-                    continue;
-                }
-
-                string domain = cookie.Domain.StartsWith(".") ? cookie.Domain.Substring(1) : cookie.Domain;
-                webView.SetCookies("https://" + domain, cookie);
-            }
-        }
-
-        /// <summary>
-        /// Clears cookies for configured domains from an offscreen WebView.
-        /// Marshalled on the Playnite UI dispatcher (CEF requires UI thread). Prefer not calling this for shared SSO domains — see <c>ClearGlobalWebViewCookiesOnSessionClear</c>.
-        /// </summary>
-        public void ClearDomainCookies()
-        {
-            if (CookiesDomains == null || !CookiesDomains.Any())
-            {
-                Common.LogDebug($"{ClientName} ClearDomainCookies: no domains configured");
-                return;
-            }
-
-            Action clearAction = () =>
-            {
-                IWebView webView = null;
-                try
-                {
-                    webView = API.Instance.WebViews.CreateOffscreenView();
-                    Logger.Info($"{ClientName} clearing WebView cookies for {CookiesDomains.Count} domain(s)");
-                    Common.LogDebug($"{ClientName} ClearDomainCookies: purging shared Playnite WebView cookie jar ({CookiesDomains.Count} domain(s)); may affect other plugins using the same SSO session.");
-
-                    foreach (string domain in CookiesDomains)
-                    {
-                        webView.DeleteDomainCookies(domain);
-                        Common.LogDebug($"{ClientName} ClearDomainCookies: {domain}");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Logger.Error(ex, $"{ClientName} ClearDomainCookies failed");
-                }
-                finally
-                {
-                    webView?.Dispose();
-                }
-            };
-
-            System.Windows.Threading.Dispatcher dispatcher = API.Instance?.MainView?.UIDispatcher;
-            if (dispatcher != null && !dispatcher.CheckAccess())
-            {
-                dispatcher.Invoke(clearAction);
-            }
-            else
-            {
-                clearAction();
-            }
-        }
-
-        /// <summary>
-        /// Retrieves cookies from a WebView, optionally filtered by domain and optionally deleting them.
-        /// </summary>
-        /// <param name="deleteCookies">When <c>true</c>, clears domain cookies from the WebView after extraction.</param>
-        /// <param name="webView">Optional WebView instance. An offscreen view is created when null.</param>
-        /// <returns>Filtered cookies for the configured domains.</returns>
         public List<HttpCookie> GetWebCookies(bool deleteCookies = false, IWebView webView = null)
         {
             bool createdLocally = webView == null;
@@ -285,102 +159,14 @@ namespace CommonPluginsShared
         }
 
         /// <summary>
-        /// Navigates to the specified URLs in a WebView and returns cookies set by those pages.
-        /// Only one refresh per store client runs at a time across the process.
+        /// Retrieve new cookies from specified URLs using a WebView, optionally deleting them.
         /// </summary>
-        /// <param name="urls">Absolute URLs to visit in order.</param>
-        /// <param name="deleteCookies">When <c>true</c>, clears domain cookies from the WebView after extraction.</param>
-        /// <param name="webView">Optional WebView instance. An offscreen view is created when null.</param>
-        /// <returns>Filtered cookies for the configured domains.</returns>
-        public List<HttpCookie> GetNewWebCookiesSerialized(List<string> urls, bool deleteCookies = false, IWebView webView = null)
-        {
-            return GetNewWebCookiesSerialized(urls, deleteCookies, webView, 1000, null);
-        }
-
-        /// <summary>
-        /// Navigates to the specified URLs in a WebView and returns cookies set by those pages.
-        /// Only one refresh per store client runs at a time across the process.
-        /// </summary>
-        /// <param name="urls">Absolute URLs to visit in order.</param>
-        /// <param name="deleteCookies">When <c>true</c>, clears domain cookies from the WebView after extraction.</param>
-        /// <param name="webView">Optional WebView instance. An offscreen view is created when null.</param>
-        /// <param name="waitAfterNavigateMs">Delay in milliseconds after each navigation before reading cookies. Use 0 to skip the wait.</param>
-        /// <param name="cookiesToInject">
-        /// Cookies to inject before navigation. When <c>null</c>, all stored cookies are injected.
-        /// Pass an empty list to skip injection.
-        /// </param>
-        /// <returns>Filtered cookies for the configured domains, or an empty list on failure.</returns>
-        public List<HttpCookie> GetNewWebCookiesSerialized(List<string> urls, bool deleteCookies, IWebView webView, int waitAfterNavigateMs, List<HttpCookie> cookiesToInject)
-        {
-            object sync = GetWebCookieLock(ClientName);
-            bool lockTaken = false;
-
-            try
-            {
-                Monitor.TryEnter(sync, ref lockTaken);
-                if (!lockTaken)
-                {
-                    Common.LogDebug($"{ClientName} GetNewWebCookies: waiting for in-flight WebView cookie refresh.");
-                    Monitor.Enter(sync, ref lockTaken);
-                }
-
-                return GetNewWebCookies(urls, deleteCookies, webView, waitAfterNavigateMs, cookiesToInject);
-            }
-            finally
-            {
-                if (lockTaken)
-                {
-                    Monitor.Exit(sync);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Navigates to the specified URLs in a WebView and returns cookies set by those pages.
-        /// Uses a default post-navigation delay of 1000 ms.
-        /// </summary>
-        /// <param name="urls">Absolute URLs to visit in order.</param>
-        /// <param name="deleteCookies">When <c>true</c>, clears domain cookies from the WebView after extraction.</param>
-        /// <param name="webView">Optional WebView instance. An offscreen view is created when null.</param>
-        /// <returns>Filtered cookies for the configured domains.</returns>
         public List<HttpCookie> GetNewWebCookies(List<string> urls, bool deleteCookies = false, IWebView webView = null)
-        {
-            return GetNewWebCookies(urls, deleteCookies, webView, 1000, null);
-        }
-
-        /// <summary>
-        /// Navigates to the specified URLs in a WebView and returns cookies set by those pages.
-        /// Stored cookies are injected into the WebView before navigation.
-        /// </summary>
-        /// <param name="urls">Absolute URLs to visit in order.</param>
-        /// <param name="deleteCookies">When <c>true</c>, clears domain cookies from the WebView after extraction.</param>
-        /// <param name="webView">Optional WebView instance. An offscreen view is created when null.</param>
-        /// <param name="waitAfterNavigateMs">Delay in milliseconds after each navigation before reading cookies. Use 0 to skip the wait.</param>
-        /// <returns>Filtered cookies for the configured domains, or an empty list on failure.</returns>
-        public List<HttpCookie> GetNewWebCookies(List<string> urls, bool deleteCookies, IWebView webView, int waitAfterNavigateMs)
-        {
-            return GetNewWebCookies(urls, deleteCookies, webView, waitAfterNavigateMs, null);
-        }
-
-        /// <summary>
-        /// Navigates to the specified URLs in a WebView and returns cookies set by those pages.
-        /// </summary>
-        /// <param name="urls">Absolute URLs to visit in order.</param>
-        /// <param name="deleteCookies">When <c>true</c>, clears domain cookies from the WebView after extraction.</param>
-        /// <param name="webView">Optional WebView instance. An offscreen view is created when null.</param>
-        /// <param name="waitAfterNavigateMs">Delay in milliseconds after each navigation before reading cookies. Use 0 to skip the wait.</param>
-        /// <param name="cookiesToInject">
-        /// Cookies to inject before navigation. When <c>null</c>, all stored cookies are injected.
-        /// Pass an empty list to skip injection.
-        /// </param>
-        /// <returns>Filtered cookies for the configured domains, or an empty list on failure.</returns>
-        public List<HttpCookie> GetNewWebCookies(List<string> urls, bool deleteCookies, IWebView webView, int waitAfterNavigateMs, List<HttpCookie> cookiesToInject)
         {
             bool createdLocally = webView == null;
 
             try
             {
-                Common.LogDebug($"{ClientName} GetNewWebCookies: deleteCookies={deleteCookies}, urlCount={urls?.Count ?? 0}, sharedJarPurge={(deleteCookies ? "yes" : "no")}.");
                 if (createdLocally)
                 {
                     WebViewSettings webViewSettings = new WebViewSettings
@@ -391,36 +177,17 @@ namespace CommonPluginsShared
                     webView = API.Instance.WebViews.CreateOffscreenView(webViewSettings);
                 }
 
-                List<HttpCookie> injectCookies = cookiesToInject ?? GetStoredCookies();
-                if (injectCookies != null && injectCookies.Count > 0)
+                List<HttpCookie> oldCookies = GetStoredCookies();
+                oldCookies?.ForEach(cookie =>
                 {
-                    Common.LogDebug($"{ClientName} GetNewWebCookies: injecting {injectCookies.Count} cookie(s) before navigation");
-                    foreach (HttpCookie cookie in injectCookies)
-                    {
-                        if (cookie == null)
-                        {
-                            continue;
-                        }
+                    string domain = cookie.Domain.StartsWith(".") ? cookie.Domain.Substring(1) : cookie.Domain;
+                    webView.SetCookies("https://" + domain, cookie);
+                });
 
-                        string domain = cookie.Domain.StartsWith(".") ? cookie.Domain.Substring(1) : cookie.Domain;
-                        Common.LogDebug($"{ClientName} GetNewWebCookies: SetCookies domain='{domain}' name='{cookie.Name}'");
-                        webView.SetCookies("https://" + domain, cookie);
-                    }
-                }
-                else
-                {
-                    Common.LogDebug($"{ClientName} GetNewWebCookies: skipping cookie injection");
-                }
-
-                int waitMs = waitAfterNavigateMs < 0 ? 0 : waitAfterNavigateMs;
                 urls.ForEach(url =>
                 {
-                    Common.LogDebug($"{ClientName} GetNewWebCookies: NavigateAndWait url='{url}'");
                     webView.NavigateAndWait(url);
-                    if (waitMs > 0)
-                    {
-                        Thread.Sleep(waitMs);
-                    }
+                    Thread.Sleep(1000);
                 });
 
                 return ExtractCookies(webView, deleteCookies);
@@ -440,93 +207,20 @@ namespace CommonPluginsShared
         }
 
         /// <summary>
-        /// Keeps only cookies whose domain matches the configured store domains.
-        /// </summary>
-        /// <param name="httpCookies">Raw cookies from a WebView or HTTP client.</param>
-        /// <returns>Filtered cookie list.</returns>
-        public List<HttpCookie> FilterCookiesByDomains(List<HttpCookie> httpCookies)
-        {
-            if (httpCookies == null || httpCookies.Count == 0)
-            {
-                return new List<HttpCookie>();
-            }
-
-            return httpCookies.Where(cookie => cookie != null && IsCookieDomainAllowed(cookie.Domain)).ToList();
-        }
-
-        /// <summary>
         /// Internal utility method to extract cookies from WebView, filtered and optionally cleared.
         /// </summary>
         private List<HttpCookie> ExtractCookies(IWebView webView, bool deleteCookies)
         {
-            List<HttpCookie> httpCookies = FilterCookiesByDomains(webView.GetCookies()?.ToList());
+            List<HttpCookie> httpCookies = CookiesDomains?.Count > 0
+                ? webView.GetCookies()?.Where(x => CookiesDomains.Any(y => y.Contains(x?.Domain, StringComparison.OrdinalIgnoreCase)))?.ToList() ?? new List<HttpCookie>()
+                : webView.GetCookies()?.Where(x => x?.Domain?.Contains(ClientName, StringComparison.OrdinalIgnoreCase) ?? false)?.ToList() ?? new List<HttpCookie>();
 
-            if (deleteCookies && CookiesDomains != null)
+            if (deleteCookies)
             {
-                Common.LogDebug($"{ClientName} ExtractCookies: deleteCookies=true — purging {CookiesDomains.Count} domain(s) from shared WebView jar after extracting {httpCookies?.Count ?? 0} cookie(s).");
                 CookiesDomains.ForEach(x => webView.DeleteDomainCookies(x));
-            }
-            else
-            {
-                Common.LogDebug($"{ClientName} ExtractCookies: deleteCookies=false — shared WebView jar left intact ({httpCookies?.Count ?? 0} cookie(s) extracted).");
             }
 
             return httpCookies;
-        }
-
-        private bool IsCookieDomainAllowed(string cookieDomain)
-        {
-            if (string.IsNullOrEmpty(cookieDomain))
-            {
-                return false;
-            }
-
-            if (CookiesDomains == null || CookiesDomains.Count == 0)
-            {
-                return cookieDomain.IndexOf(ClientName, StringComparison.OrdinalIgnoreCase) >= 0;
-            }
-
-            foreach (string allowedDomain in CookiesDomains)
-            {
-                if (CookieDomainMatches(cookieDomain, allowedDomain))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private static bool CookieDomainMatches(string cookieDomain, string allowedDomain)
-        {
-            if (string.IsNullOrEmpty(allowedDomain))
-            {
-                return false;
-            }
-
-            string normalizedCookieDomain = cookieDomain.TrimStart('.');
-            string normalizedAllowedDomain = allowedDomain.TrimStart('.');
-
-            if (normalizedCookieDomain.Equals(normalizedAllowedDomain, StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-
-            return normalizedCookieDomain.EndsWith("." + normalizedAllowedDomain, StringComparison.OrdinalIgnoreCase);
-        }
-
-        private static object GetWebCookieLock(string clientName)
-        {
-            lock (WebCookieLocksSync)
-            {
-                if (!WebCookieLocksByClient.TryGetValue(clientName, out object sync))
-                {
-                    sync = new object();
-                    WebCookieLocksByClient[clientName] = sync;
-                }
-
-                return sync;
-            }
         }
 
         #endregion

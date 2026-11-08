@@ -1,29 +1,60 @@
-﻿using CommonPluginsControls.Stores;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows;
+using CommonPluginsStores;
+using CommonPluginsStores.Models;
+using CommonPluginsStores.Models.Enumerations;
+using CommonPluginsStores.Models.Interfaces;
 using Playnite.SDK;
-using System;
 
 namespace CommonPluginsControls.Stores.Epic
 {
-    public class PanelViewModel : StorePanelViewModelBase
+    public class PanelViewModel : ObservableObject
     {
-        protected override string LoginErrorContext => "Epic login failed";
+        private IStoreApi _storeApi;
+        internal IStoreApi StoreApi
+        {
+            get => _storeApi;
+            set
+            {
+                _storeApi = value;
+                OnPropertyChanged(nameof(StoreApi));
+                OnPropertyChanged(nameof(User));
+                OnPropertyChanged(nameof(AuthStatus));
+            }
+        }
+        public AccountInfos User => StoreApi?.CurrentAccountInfos;
 
-        protected override string LogoutErrorContext => "Epic logout failed";
+        private bool useAuth = true;
+        public bool UseAuth { get => useAuth; set => SetValue(ref useAuth, value); }
+
+        private bool forceAuth = false;
+        public bool ForceAuth { get => forceAuth; set => SetValue(ref forceAuth, value); }
+
+        public AuthStatus AuthStatus => StoreApi == null ? AuthStatus.Failed : StoreApi.IsUserLoggedIn ? AuthStatus.Ok : AuthStatus.AuthRequired;
+
+        public RelayCommand<object> LoginCommand => new RelayCommand<object>((a) =>
+        {
+            StoreApi.Login();
+            OnPropertyChanged(nameof(AuthStatus));
+            OnPropertyChanged(nameof(User));
+        });
 
         public RelayCommand<object> LoginAlternativeCommand => new RelayCommand<object>((a) =>
         {
-            try
-            {
-                StoreSettingsLog.LoginAlternativeRequested(StoreApi);
-                StoreApi.LoginAlternative();
-                NotifyAuthStatusChanged();
-                StoreSettingsLog.LoginCompleted(StoreApi, AuthStatus);
-            }
-            catch (Exception ex)
-            {
-                StoreSettingsLog.Error(ex, "Epic alternative login failed");
-                throw;
-            }
+            StoreApi.LoginAlternative();
+            OnPropertyChanged(nameof(AuthStatus));
+            OnPropertyChanged(nameof(User));
         });
+
+        public void ResetIsUserLoggedIn()
+        {
+            StoreApi.ResetIsUserLoggedIn();
+            OnPropertyChanged(nameof(AuthStatus));
+        }
     }
 }

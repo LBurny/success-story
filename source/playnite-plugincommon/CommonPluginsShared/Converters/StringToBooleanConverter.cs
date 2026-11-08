@@ -1,14 +1,19 @@
 ﻿using CommonPlayniteShared;
+using Playnite.SDK;
 using System;
+using System.Drawing.Imaging;
 using System.Globalization;
+using System.IO;
+using System.Text.RegularExpressions;
+using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Markup;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 
 namespace CommonPluginsShared.Converters
 {
-    /// <summary>
-    /// Converts a string to boolean based on if it's null/empty.
-    /// Supports parameter "Inverted" or "Normal".
-    /// </summary>
     public class StringToBooleanConverter : IValueConverter
     {
         enum Parameters
@@ -18,43 +23,20 @@ namespace CommonPluginsShared.Converters
 
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            try
+            var direction = parameter == null ? Parameters.Normal : (Parameters)Enum.Parse(typeof(Parameters), (string)parameter);
+            if (direction == Parameters.Inverted)
             {
-                Parameters direction = Parameters.Normal;
-                if (parameter != null)
-                {
-                    try
-                    {
-                        direction = (Parameters)Enum.Parse(typeof(Parameters), parameter.ToString());
-                    }
-                    catch
-                    {
-                        // Ignore parameter parsing error, default to Normal
-                    }
-                }
-
-                string stringValue = value?.ToString();
-                bool isNullOrEmpty = string.IsNullOrEmpty(stringValue);
-
-                if (direction == Parameters.Inverted)
-                {
-                    return isNullOrEmpty;
-                }
-                else
-                {
-                    return !isNullOrEmpty;
-                }
+                return string.IsNullOrEmpty(value.ToString()) ? true : false;
             }
-            catch (Exception ex)
+            else
             {
-                Common.LogError(ex, false);
-                return false;
+                return string.IsNullOrEmpty(value.ToString()) ? false : true;
             }
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            throw new NotSupportedException();
+            throw new NotImplementedException();
         }
     }
 }

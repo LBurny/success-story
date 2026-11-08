@@ -1,14 +1,11 @@
-using Ardalis.GuardClauses;
+﻿using Ardalis.GuardClauses;
 using CommonPlayniteShared;
 using CommonPlayniteShared.Common;
 using CommonPluginsShared;
-using CommonPluginsShared.Caching;
 using CommonPluginsShared.Converters;
 using CommonPluginsShared.Extensions;
-using CommonPluginsShared.IO;
 using CommonPluginsShared.Models;
 using CommonPluginsStores.Models;
-using CommonPluginsStores.Models.Enumerations;
 using CommonPluginsStores.Models.Interfaces;
 using Playnite.SDK;
 using Playnite.SDK.Data;
@@ -30,9 +27,9 @@ namespace CommonPluginsStores
     /// Abstract base class for store API implementations.
     /// Provides common functionality for managing user accounts, games, achievements, and DLC data.
     /// </summary>
-    public abstract class StoreApi : ObservableObject, IStoreApi, IStoreApiInternal, IStoreSessionManager
+    public abstract class StoreApi : ObservableObject, IStoreApi, IStoreApiInternal
     {
-        protected static readonly ILogger Logger = LogManager.GetLogger();
+        protected static ILogger Logger => LogManager.GetLogger();
 
         private readonly SmartCache<AccountInfos> _accountCache;
         private readonly SmartCache<ObservableCollection<AccountInfos>> _friendsCache;
@@ -42,6 +39,10 @@ namespace CommonPluginsStores
         private Lazy<AccountInfos> _lazyAccount;
         private readonly Lazy<ObservableCollection<AccountInfos>> _lazyFriends;
         private readonly Lazy<ObservableCollection<AccountGameInfos>> _lazyGames;
+
+		private readonly SemaphoreSlim _rateLimiter = new SemaphoreSlim(1, 1);
+		private DateTime _lastApiCall = DateTime.MinValue;
+		internal int MinApiCallIntervalMs = 500;
 
 		#region Account data
 
@@ -59,7 +60,7 @@ namespace CommonPluginsStores
         /// Gets or sets the current friends list.
         /// Data is refreshed every 30 minutes.
         /// </summary>
-        ///
+        /// 
         public ObservableCollection<AccountInfos> CurrentFriendsInfos => _lazyFriends.Value;
 
         /// <summary>
@@ -93,68 +94,19 @@ namespace CommonPluginsStores
         public StoreSettings StoreSettings { get; set; } = new StoreSettings();
 
         private bool? isUserLoggedIn;
-        private bool _forceFullLoginCheck;
-        private long _authOperationGeneration;
-        private long _authCheckGeneration;
-        private readonly object _loginRefreshSync = new object();
-        private Task _pendingLoginRefreshTask = Task.CompletedTask;
-        private readonly List<Action> _loginRefreshCallbacks = new List<Action>();
-        private int _loginRefreshResolutionDepth;
-        private int _displayOnlyResolutionDepth;
-
-        /// <summary>
-        /// When true, <see cref="GetIsUserLoggedIn"/> must run a full verification (network), not cache shortcuts.
-        /// Suppressed while resolving <see cref="IsUserLoggedInForDisplay"/>.
-        /// </summary>
-        protected bool ForceFullLoginCheck => _forceFullLoginCheck && _displayOnlyResolutionDepth == 0;
 
         /// <summary>
         /// Gets or sets whether the user is logged in.
-        /// Does not block on in-flight <see cref="RefreshIsUserLoggedInInBackground"/>; use cached or fast-path status instead.
         /// </summary>
         public bool IsUserLoggedIn
         {
-            get => ResolveIsUserLoggedIn();
-
-            set
-            {
-                WaitForPendingLoginRefresh();
-                SetValue(ref isUserLoggedIn, value);
-            }
-        }
-
-        /// <inheritdoc />
-        public bool IsLoginRefreshInProgress
-        {
             get
             {
-                lock (_loginRefreshSync)
-                {
-                    return !_pendingLoginRefreshTask.IsCompleted;
-                }
+                isUserLoggedIn = isUserLoggedIn ?? GetIsUserLoggedIn();
+                return (bool)isUserLoggedIn;
             }
-        }
 
-        /// <inheritdoc />
-        public bool IsUserLoggedInForDisplay
-        {
-            get
-            {
-                if (isUserLoggedIn.HasValue)
-                {
-                    return isUserLoggedIn.Value;
-                }
-
-                _displayOnlyResolutionDepth++;
-                try
-                {
-                    return GetIsUserLoggedIn();
-                }
-                finally
-                {
-                    _displayOnlyResolutionDepth--;
-                }
-            }
+            set => SetValue(ref isUserLoggedIn, value);
         }
 
         /// <summary>
@@ -171,44 +123,6 @@ namespace CommonPluginsStores
         /// Gets the client name formatted for logging (no whitespace).
         /// </summary>
         protected string ClientNameLog { get; }
-
-        /// <summary>
-        /// Prefixes a log message with the store client name (for example "[GOG] message").
-        /// </summary>
-        /// <param name="message">Log message body without client prefix.</param>
-        /// <returns>Formatted message for extension log filtering.</returns>
-        protected string FormatLogMessage(string message)
-        {
-            return $"[{ClientName}] {message}";
-        }
-
-        /// <summary>
-        /// Writes an info log entry prefixed with the store client name.
-        /// </summary>
-        /// <param name="message">Log message body without client prefix.</param>
-        protected void LogInfo(string message)
-        {
-            Logger.Info(FormatLogMessage(message));
-        }
-
-        /// <summary>
-        /// Writes a warning log entry prefixed with the store client name.
-        /// </summary>
-        /// <param name="message">Log message body without client prefix.</param>
-        protected void LogWarn(string message)
-        {
-            Logger.Warn(FormatLogMessage(message));
-        }
-
-        /// <summary>
-        /// Writes an error log entry prefixed with the store client name.
-        /// </summary>
-        /// <param name="ex">Exception to log.</param>
-        /// <param name="message">Log message body without client prefix.</param>
-        protected void LogError(Exception ex, string message)
-        {
-            Logger.Error(ex, FormatLogMessage(message));
-        }
 
         /// <summary>
         /// Gets or sets the locale for data retrieval (default: en_US).
@@ -255,7 +169,7 @@ namespace CommonPluginsStores
         /// </summary>
         protected CookiesTools CookiesTools { get; }
 
-        protected FileDataService FileDataService { get; }
+        protected FileDataTools FileDataTools { get; }
 
         protected string FileToken { get; }
 
@@ -264,7 +178,7 @@ namespace CommonPluginsStores
 		/// <summary>
 		/// Gets or sets the authentication token for API requests.
 		/// </summary>
-		protected StoreToken StoreToken
+		protected StoreToken StoreToken 
         {
             get
             {
@@ -280,14 +194,6 @@ namespace CommonPluginsStores
                 _ = SetStoredToken(_storeToken);
 			}
         }
-
-		/// <summary>
-		/// Clears the in-memory token without deleting the persisted token file.
-		/// </summary>
-		protected void ClearInMemoryStoreToken()
-		{
-			_storeToken = null;
-		}
 
         /// <summary>
         /// Gets the external plugin instance reference.
@@ -320,7 +226,7 @@ namespace CommonPluginsStores
             _gamesCache = new SmartCache<ObservableCollection<AccountGameInfos>>();
             _dlcsCache = new SmartCache<ObservableCollection<GameDlcOwned>>();
 
-            _lazyAccount = CreateAccountInfosLazy();
+            _lazyAccount = new Lazy<AccountInfos>(() => _accountCache.GetOrSet("current_account", GetCurrentAccountInfos, TimeSpan.FromHours(24)));
             _lazyFriends = new Lazy<ObservableCollection<AccountInfos>>(() => _friendsCache.GetOrSet("current_friends", GetCurrentFriendsInfos, TimeSpan.FromMinutes(30)));
             _lazyGames = new Lazy<ObservableCollection<AccountGameInfos>>(() => _gamesCache.GetOrSet("current_games", () => GetAccountGamesInfos(CurrentAccountInfos), TimeSpan.FromMinutes(30)));
 
@@ -340,7 +246,7 @@ namespace CommonPluginsStores
                 FileCookies,
                 CookiesDomains);
 
-            FileDataService = new FileDataService(PluginName, ClientName)
+            FileDataTools = new FileDataTools(PluginName, ClientName)
             {
                 ShowNotificationOldDataHandler = ShowNotificationOldData
             };
@@ -355,13 +261,6 @@ namespace CommonPluginsStores
         /// </summary>
         /// <returns>List of stored HTTP cookies</returns>
         protected virtual List<Playnite.SDK.HttpCookie> GetStoredCookies() => CookiesTools.GetStoredCookies();
-
-        /// <summary>
-        /// Reads stored cookies without logging when the cookie file is missing.
-        /// Used for auth status probes during settings UI binding.
-        /// </summary>
-        /// <returns>List of stored HTTP cookies, or an empty list when none are available.</returns>
-        protected List<Playnite.SDK.HttpCookie> PeekStoredCookies() => CookiesTools.GetStoredCookies(warnIfMissing: false);
 
         /// <summary>
         /// Save the last identified cookies stored.
@@ -380,81 +279,64 @@ namespace CommonPluginsStores
 
         /// <summary>
         /// Get new cookies from specific URLs.
-        /// Serialized per store client so concurrent auth checks do not open competing WebViews.
         /// </summary>
         /// <param name="urls">List of URLs to retrieve cookies from</param>
         /// <param name="deleteCookies">Whether to delete cookies after retrieval</param>
         /// <param name="webView">Optional WebView instance to use</param>
         /// <returns>List of new HTTP cookies</returns>
-        protected virtual List<Playnite.SDK.HttpCookie> GetNewWebCookies(List<string> urls, bool deleteCookies = false, IWebView webView = null)
-        {
-            return CookiesTools.GetNewWebCookiesSerialized(urls, deleteCookies, webView);
-        }
+        protected virtual List<Playnite.SDK.HttpCookie> GetNewWebCookies(List<string> urls, bool deleteCookies = false, IWebView webView = null) => CookiesTools.GetNewWebCookies(urls, deleteCookies, webView);
 
 		#endregion
 
 		#region Token
 
-        protected virtual StoreToken GetStoredToken() => LoadStoredToken(warnIfMissing: true);
-
-        /// <summary>
-        /// Loads the persisted OAuth token from disk.
-        /// </summary>
-        /// <param name="warnIfMissing">When true, logs a warning if the token file is absent.</param>
-        /// <returns>The stored token, or null when missing or invalid.</returns>
-        protected StoreToken LoadStoredToken(bool warnIfMissing)
+        protected virtual StoreToken GetStoredToken() 
         {
-			lock (FileSystem.GetPathSyncRoot(FileToken))
+			if (File.Exists(FileToken))
 			{
-				if (File.Exists(FileToken))
+				try
 				{
-					try
-					{
-						return Serialization.FromJson<StoreToken>(
-							Encryption.DecryptFromFile(
-								FileToken,
-								Encoding.UTF8,
-								WindowsIdentity.GetCurrent().User.Value));
-					}
-					catch (Exception ex)
-					{
-						Common.LogError(ex, false, FormatLogMessage("Failed to load saved token"));
-					}
+					return Serialization.FromJson<StoreToken>(
+						Encryption.DecryptFromFile(
+							FileToken,
+							Encoding.UTF8,
+							WindowsIdentity.GetCurrent().User.Value));
 				}
-				else if (warnIfMissing)
+				catch (Exception ex)
 				{
-					LogWarn("No stored token");
+					Common.LogError(ex, false, $"Failed to load saved token for {ClientName}");
 				}
-
-				return null;
 			}
+
+			Logger.Warn($"No stored token for {ClientName}");
+			return null;
 		}
 
         protected virtual bool SetStoredToken(StoreToken token)
 		{
-			lock (FileSystem.GetPathSyncRoot(FileToken))
+			try
 			{
-				try
+				if (token != null)
 				{
-					if (token != null)
-					{
-						Encryption.EncryptToFileSafe(
-							FileToken,
-							Serialization.ToJson(token),
-							Encoding.UTF8,
-							WindowsIdentity.GetCurrent().User.Value);
-						return true;
-					}
-
-					Common.LogDebug(FormatLogMessage("Session token cleared (nothing to save)."));
+					FileSystem.CreateDirectory(Path.GetDirectoryName(FileToken));
+					Encryption.EncryptToFile(
+						FileToken,
+						Serialization.ToJson(token),
+						Encoding.UTF8,
+						WindowsIdentity.GetCurrent().User.Value);
+					return true;
 				}
-				catch (Exception ex)
+				else
 				{
-					Common.LogError(ex, false, FormatLogMessage("Failed to save token"));
+					Logger.Warn($"No token saved for {PluginName}");
 				}
-
-				return false;
 			}
+			catch (Exception ex)
+			{
+				Common.LogError(ex, false, "Failed to save token");
+			}
+
+			return false;
 		}
 
 		#endregion
@@ -467,408 +349,6 @@ namespace CommonPluginsStores
 		public void ResetIsUserLoggedIn()
         {
             isUserLoggedIn = null;
-        }
-
-		/// <summary>
-		/// Blocks the caller until any queued background login refresh finishes.
-		/// Skipped while the current thread is resolving login inside a refresh worker.
-		/// </summary>
-		private void WaitForPendingLoginRefresh()
-		{
-			if (_loginRefreshResolutionDepth > 0)
-			{
-				return;
-			}
-
-			Task pendingTask;
-			lock (_loginRefreshSync)
-			{
-				pendingTask = _pendingLoginRefreshTask;
-			}
-
-			if (pendingTask != null && !pendingTask.IsCompleted)
-			{
-				Common.LogDebug(FormatLogMessage("IsUserLoggedIn: waiting for pending background login refresh."));
-				pendingTask.GetAwaiter().GetResult();
-			}
-		}
-
-		/// <summary>
-		/// Resolves and caches login status without waiting on a pending background refresh.
-		/// </summary>
-		/// <returns>True when the user is authenticated for the current store session.</returns>
-		private bool ResolveIsUserLoggedIn()
-		{
-			_loginRefreshResolutionDepth++;
-			try
-			{
-				if (!isUserLoggedIn.HasValue)
-				{
-					isUserLoggedIn = GetIsUserLoggedIn();
-				}
-
-				return isUserLoggedIn.Value;
-			}
-			finally
-			{
-				_loginRefreshResolutionDepth--;
-			}
-		}
-
-		/// <summary>
-		/// Re-evaluates login status on a background thread and invokes queued callbacks on the UI thread.
-		/// Concurrent requests are coalesced into a single in-flight refresh.
-		/// UI bindings should use <see cref="IsUserLoggedInForDisplay"/> and <see cref="IsLoginRefreshInProgress"/>.
-		/// </summary>
-		/// <param name="onCompleted">Optional callback after the check finishes (UI thread).</param>
-		public void RefreshIsUserLoggedInInBackground(Action onCompleted = null)
-		{
-			long operationGeneration = Interlocked.Read(ref _authOperationGeneration);
-			TaskCompletionSource<object> refreshCompleted;
-			Task previousGate;
-
-			lock (_loginRefreshSync)
-			{
-				if (!_pendingLoginRefreshTask.IsCompleted)
-				{
-					if (onCompleted != null)
-					{
-						_loginRefreshCallbacks.Add(onCompleted);
-					}
-
-					Common.LogDebug(FormatLogMessage("RefreshIsUserLoggedInInBackground: coalesced with in-flight refresh."));
-					return;
-				}
-
-				if (onCompleted != null)
-				{
-					_loginRefreshCallbacks.Add(onCompleted);
-				}
-
-				Common.LogDebug(FormatLogMessage($"RefreshIsUserLoggedInInBackground: scheduling full login check, generation={operationGeneration}."));
-
-				refreshCompleted = new TaskCompletionSource<object>();
-				previousGate = _pendingLoginRefreshTask;
-				_pendingLoginRefreshTask = refreshCompleted.Task;
-			}
-
-			previousGate.ContinueWith(_ =>
-			{
-				try
-				{
-					if (!IsAuthOperationCurrent(operationGeneration))
-					{
-						Common.LogDebug(FormatLogMessage($"RefreshIsUserLoggedInInBackground: aborted before start (generation={operationGeneration}, current={Interlocked.Read(ref _authOperationGeneration)})."));
-						return;
-					}
-
-					try
-					{
-						BeginFullLoginCheck(operationGeneration);
-						if (!IsAuthOperationCurrent(operationGeneration))
-						{
-							Common.LogDebug(FormatLogMessage("RefreshIsUserLoggedInInBackground: aborted after BeginFullLoginCheck (superseded auth operation)."));
-							return;
-						}
-
-						bool isLoggedIn;
-						_loginRefreshResolutionDepth++;
-						try
-						{
-							isLoggedIn = GetIsUserLoggedIn();
-						}
-						finally
-						{
-							_loginRefreshResolutionDepth--;
-						}
-
-						if (!IsAuthCheckCurrent())
-						{
-							Common.LogDebug(FormatLogMessage("RefreshIsUserLoggedInInBackground: result discarded (superseded auth operation)."));
-							return;
-						}
-
-						SetValue(ref isUserLoggedIn, isLoggedIn);
-						Common.LogDebug(FormatLogMessage($"RefreshIsUserLoggedInInBackground: full check completed, IsUserLoggedIn={isLoggedIn}."));
-					}
-					catch (Exception ex)
-					{
-						LogError(ex, "RefreshIsUserLoggedInInBackground failed");
-					}
-					finally
-					{
-						EndFullLoginCheck();
-					}
-				}
-				finally
-				{
-					refreshCompleted.TrySetResult(null);
-					NotifyLoginRefreshCallbacks();
-				}
-			}, CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
-		}
-
-		/// <summary>
-		/// Invokes and clears callbacks registered for the completed login refresh.
-		/// </summary>
-		private void NotifyLoginRefreshCallbacks()
-		{
-			List<Action> callbacks;
-			lock (_loginRefreshSync)
-			{
-				if (_loginRefreshCallbacks.Count == 0)
-				{
-					return;
-				}
-
-				callbacks = new List<Action>(_loginRefreshCallbacks);
-				_loginRefreshCallbacks.Clear();
-			}
-
-			Common.LogDebug(FormatLogMessage($"RefreshIsUserLoggedInInBackground: notifying UI ({callbacks.Count} callback(s))."));
-			foreach (Action callback in callbacks)
-			{
-				if (callback != null)
-				{
-					API.Instance.MainView.UIDispatcher?.BeginInvoke(callback);
-				}
-			}
-		}
-
-		/// <summary>
-		/// Invalidates in-flight auth checks and returns the new operation generation.
-		/// </summary>
-		protected long BeginAuthOperation()
-		{
-			long generation = Interlocked.Increment(ref _authOperationGeneration);
-			Common.LogDebug(FormatLogMessage($"BeginAuthOperation: generation={generation}."));
-			return generation;
-		}
-
-		/// <summary>
-		/// Returns true when <paramref name="operationGeneration"/> is still the active auth generation.
-		/// </summary>
-		protected bool IsAuthOperationCurrent(long operationGeneration)
-		{
-			return operationGeneration == Interlocked.Read(ref _authOperationGeneration);
-		}
-
-		/// <summary>
-		/// Returns true when the current full-login check has not been superseded.
-		/// </summary>
-		protected bool IsAuthCheckCurrent()
-		{
-			return IsAuthOperationCurrent(_authCheckGeneration);
-		}
-
-		/// <summary>
-		/// Enables full login verification for the current background refresh.
-		/// </summary>
-		/// <param name="operationGeneration">Auth generation captured when the check started.</param>
-		protected virtual void BeginFullLoginCheck(long operationGeneration)
-		{
-			_forceFullLoginCheck = true;
-			_authCheckGeneration = operationGeneration;
-		}
-
-		/// <summary>
-		/// Disables full login verification after a background refresh.
-		/// </summary>
-		protected virtual void EndFullLoginCheck()
-		{
-			_forceFullLoginCheck = false;
-			_authCheckGeneration = 0;
-		}
-
-		/// <summary>
-		/// Reads persisted OAuth token metadata without calling store APIs.
-		/// </summary>
-		/// <returns>True or false when a token file exists; null when absent.</returns>
-		protected bool? TryGetAuthStatusFromStoredToken()
-		{
-			StoreToken token = _storeToken ?? LoadStoredToken(warnIfMissing: false);
-			if (token == null)
-			{
-				return null;
-			}
-
-			if (token.Token.IsNullOrEmpty() && token.RefreshToken.IsNullOrEmpty())
-			{
-				return false;
-			}
-
-			return true;
-		}
-
-		/// <summary>
-		/// Returns true when HTTP cookies were persisted for this store client.
-		/// </summary>
-		protected bool TryGetAuthStatusFromStoredCookies()
-		{
-			List<Playnite.SDK.HttpCookie> cookies = PeekStoredCookies();
-			return cookies != null && cookies.Count > 0;
-		}
-
-		/// <summary>
-		/// Returns true when encrypted user profile data exists from a prior session.
-		/// </summary>
-		protected bool TryGetAuthStatusFromSavedUser()
-		{
-			AccountInfos savedUser = LoadCurrentUser();
-			return savedUser != null && !savedUser.UserId.IsNullOrEmpty();
-		}
-
-		/// <summary>
-		/// Returns true when persisted cookies or a non-empty OAuth token exist for web auth verification.
-		/// Saved user profile data alone is not sufficient.
-		/// </summary>
-		protected bool HasSessionCredentialsForAuth()
-		{
-			if (TryGetAuthStatusFromStoredCookies())
-			{
-				return true;
-			}
-
-			bool? tokenAuth = TryGetAuthStatusFromStoredToken();
-			return tokenAuth == true;
-		}
-
-        /// <inheritdoc />
-        public void ReloadAccountInfos()
-        {
-            _accountCache.Clear();
-            SetValue(ref _lazyAccount, CreateAccountInfosLazy(), nameof(CurrentAccountInfos));
-            isUserLoggedIn = null;
-            Common.LogDebug(FormatLogMessage("ReloadAccountInfos: account cache invalidated."));
-        }
-
-        private Lazy<AccountInfos> CreateAccountInfosLazy()
-        {
-            return new Lazy<AccountInfos>(() => _accountCache.GetOrSet("current_account", GetCurrentAccountInfos, TimeSpan.FromHours(24)));
-        }
-
-        /// <summary>
-        /// When true, <see cref="ClearSession"/> also removes store cookies from the shared Playnite WebView cookie jar.
-        /// Default is false: Lacro59 store logout must not wipe the shared CEF jar used by library plugins (SteamLibrary, GogLibrary, EpicLibrary, …).
-        /// Override to true only when a deliberate global purge is required and documented.
-        /// </summary>
-        protected virtual bool ClearGlobalWebViewCookiesOnSessionClear => false;
-
-        /// <summary>
-        /// Clears stored authentication data and session profile fields for the current account.
-        /// Manual store settings such as the Steam Web API key are preserved.
-        /// </summary>
-        public virtual void ClearSession()
-        {
-            LogInfo("ClearSession started");
-            _ = BeginAuthOperation();
-
-            try
-            {
-                CookiesTools.ClearStoredCookies();
-                if (ClearGlobalWebViewCookiesOnSessionClear)
-                {
-                    Common.LogDebug(FormatLogMessage($"ClearSession: purging shared WebView cookie jar ({CookiesDomains?.Count ?? 0} domain(s))."));
-                    CookiesTools.ClearDomainCookies();
-                }
-                else
-                {
-                    Common.LogDebug(FormatLogMessage("ClearSession: skipped global WebView cookie purge (ClearGlobalWebViewCookiesOnSessionClear=false); SSO jar preserved for other plugins."));
-                }
-
-                ClearStoredToken();
-                ClearSessionProfileFields();
-                SetSessionLoggedOutByUser();
-                IsUserLoggedIn = false;
-                SaveCurrentUser();
-                LogInfo("ClearSession completed");
-            }
-            catch (Exception ex)
-            {
-                LogError(ex, "ClearSession failed");
-                throw;
-            }
-        }
-
-        /// <summary>
-        /// Deletes the stored authentication token file and in-memory token cache.
-        /// </summary>
-        protected void ClearStoredToken()
-        {
-            _storeToken = null;
-
-            lock (FileSystem.GetPathSyncRoot(FileToken))
-            {
-                if (File.Exists(FileToken))
-                {
-                    FileSystem.DeleteFileSafe(FileToken);
-                    LogInfo("Stored token file deleted");
-                    Common.LogDebug(FormatLogMessage($"ClearStoredToken: {FileToken}"));
-                }
-                else
-                {
-                    Common.LogDebug(FormatLogMessage("ClearStoredToken: no token file found"));
-                }
-            }
-        }
-
-        /// <summary>
-        /// Clears profile fields populated by an authenticated session.
-        /// </summary>
-        protected void ClearSessionProfileFields()
-        {
-            AccountInfos user = CurrentAccountInfos;
-
-            if (user == null)
-            {
-                LogWarn("ClearSession: no current account to update");
-                return;
-            }
-
-            user.UserId = null;
-            user.Avatar = null;
-            user.Link = null;
-            user.Pseudo = null;
-            user.AccountStatus = AccountStatus.Unknown;
-            Common.LogDebug(FormatLogMessage("ClearSession: session profile fields cleared (UserId, Pseudo, avatar, link)"));
-        }
-
-        /// <summary>
-        /// Marks the account as explicitly logged out so stores can suppress automatic SSO re-authentication.
-        /// </summary>
-        protected void SetSessionLoggedOutByUser()
-        {
-            AccountInfos user = CurrentAccountInfos;
-            if (user == null)
-            {
-                LogWarn("ClearSession: no current account to persist logged-out flag");
-                return;
-            }
-
-            user.SessionLoggedOutByUser = true;
-            Common.LogDebug(FormatLogMessage("ClearSession: session logged-out flag set (SSO refresh suppressed)."));
-        }
-
-        /// <inheritdoc />
-        public void PrepareExplicitLogin()
-        {
-            AccountInfos user = CurrentAccountInfos;
-            if (user == null || !user.SessionLoggedOutByUser)
-            {
-                return;
-            }
-
-            user.SessionLoggedOutByUser = false;
-            SaveCurrentUser();
-            Common.LogDebug(FormatLogMessage("PrepareExplicitLogin: session logged-out flag cleared."));
-        }
-
-        /// <summary>
-        /// Returns true when persisted account data should be kept after session identifiers were cleared.
-        /// </summary>
-        protected static bool HasPersistedManualAccountData(AccountInfos accountInfos)
-        {
-            return accountInfos != null && !accountInfos.ApiKey.IsNullOrEmpty();
         }
 
         /// <summary>
@@ -894,124 +374,6 @@ namespace CommonPluginsStores
         public void SetForceAuth(bool forceAuth)
         {
             StoreSettings.ForceAuth = forceAuth;
-        }
-
-        /// <summary>
-        /// Strips query strings from auth WebView URLs before logging.
-        /// </summary>
-        /// <param name="url">Full WebView address.</param>
-        /// <returns>Path-only URL safe for logs, or a fallback label.</returns>
-        protected static string FormatAuthWebViewUrlForLog(string url)
-        {
-            if (url.IsNullOrEmpty())
-            {
-                return "(empty)";
-            }
-
-            try
-            {
-                if (Uri.TryCreate(url, UriKind.Absolute, out Uri uri))
-                {
-                    return uri.GetLeftPart(UriPartial.Path);
-                }
-            }
-            catch
-            {
-            }
-
-            return url;
-        }
-
-        /// <inheritdoc />
-        public string ProviderKey => ClientName;
-
-        /// <inheritdoc />
-        public virtual AuthProbeResult ProbeAuthState()
-        {
-            long generation = BeginAuthOperation();
-            BeginFullLoginCheck(generation);
-            try
-            {
-                bool isLoggedIn;
-                _loginRefreshResolutionDepth++;
-                try
-                {
-                    isLoggedIn = GetIsUserLoggedIn();
-                }
-                finally
-                {
-                    _loginRefreshResolutionDepth--;
-                }
-
-                if (!IsAuthCheckCurrent())
-                {
-                    Common.LogDebug(FormatLogMessage("ProbeAuthState: discarded (superseded auth operation)."));
-                    return AuthProbeResult.ProbeFailed();
-                }
-
-                SetValue(ref isUserLoggedIn, isLoggedIn);
-                if (isLoggedIn)
-                {
-                    string userId = CurrentAccountInfos?.UserId;
-                    Common.LogDebug(FormatLogMessage($"ProbeAuthState: AlreadyAuthenticated UserId={userId}."));
-                    return AuthProbeResult.AlreadyAuthenticated(userId);
-                }
-
-                Common.LogDebug(FormatLogMessage("ProbeAuthState: NotAuthenticated."));
-                return AuthProbeResult.NotAuthenticated();
-            }
-            catch (Exception ex)
-            {
-                LogError(ex, "ProbeAuthState failed");
-                return AuthProbeResult.ProbeFailed();
-            }
-            finally
-            {
-                EndFullLoginCheck();
-            }
-        }
-
-        /// <inheritdoc />
-        public virtual AuthProbeResult AuthenticateInteractive(bool forceInteractive)
-        {
-            try
-            {
-                if (!forceInteractive)
-                {
-                    AuthProbeResult existing = ProbeAuthState();
-                    if (existing.IsSuccess)
-                    {
-                        Common.LogDebug(FormatLogMessage("AuthenticateInteractive: already authenticated."));
-                        return existing;
-                    }
-                }
-                else
-                {
-                    ClearSession();
-                    PrepareExplicitLogin();
-                }
-
-                Login();
-
-                AuthProbeResult probed = ProbeAuthState();
-                if (probed.IsSuccess)
-                {
-                    Common.LogDebug(FormatLogMessage($"AuthenticateInteractive: Authenticated UserId={probed.UserId}."));
-                    return AuthProbeResult.Authenticated(probed.UserId, probed.ExpiresUtc, windowOpened: true);
-                }
-
-                LogWarn($"AuthenticateInteractive: not authenticated after login (Outcome={probed.Outcome}).");
-                return AuthProbeResult.NotAuthenticated();
-            }
-            catch (NotImplementedException)
-            {
-                throw;
-            }
-            catch (Exception ex)
-            {
-                LogError(ex, "AuthenticateInteractive failed");
-                return AuthProbeResult.Failed(windowOpened: true);
-            }
         }
 
         /// <summary>
@@ -1044,28 +406,25 @@ namespace CommonPluginsStores
         /// <returns>AccountInfos object or null if loading fails</returns>
         protected AccountInfos LoadCurrentUser()
         {
-            lock (FileSystem.GetPathSyncRoot(FileUser))
+            if (FileSystem.FileExists(FileUser))
             {
-                if (FileSystem.FileExists(FileUser))
+                try
                 {
-                    try
-                    {
-                        string user = Encryption.DecryptFromFile(
-                            FileUser,
-                            Encoding.UTF8,
-                            WindowsIdentity.GetCurrent().User.Value);
+                    string user = Encryption.DecryptFromFile(
+                        FileUser,
+                        Encoding.UTF8,
+                        WindowsIdentity.GetCurrent().User.Value);
 
-                        _ = Serialization.TryFromJson(user, out AccountInfos accountInfos);
-                        return accountInfos;
-                    }
-                    catch (Exception ex)
-                    {
-                        Common.LogError(ex, false, true, PluginName, FormatLogMessage("Failed to load user"));
-                    }
+                    _ = Serialization.TryFromJson(user, out AccountInfos accountInfos);
+                    return accountInfos;
                 }
-
-                return null;
+                catch (Exception ex)
+                {
+                    Common.LogError(ex, false, true, PluginName, $"Failed to load {ClientName} user.");
+                }
             }
+
+            return null;
         }
 
         /// <summary>
@@ -1080,14 +439,12 @@ namespace CommonPluginsStores
         {
             if (CurrentAccountInfos != null)
             {
-                lock (FileSystem.GetPathSyncRoot(FileUser))
-                {
-                    Encryption.EncryptToFileSafe(
-                        FileUser,
-                        Serialization.ToJson(CurrentAccountInfos),
-                        Encoding.UTF8,
-                        WindowsIdentity.GetCurrent().User.Value);
-                }
+                FileSystem.PrepareSaveFile(FileUser);
+                Encryption.EncryptToFile(
+                    FileUser,
+                    Serialization.ToJson(CurrentAccountInfos),
+                    Encoding.UTF8,
+                    WindowsIdentity.GetCurrent().User.Value);
             }
         }
 
@@ -1138,13 +495,6 @@ namespace CommonPluginsStores
             {
                 return accountInfos;
             }
-
-            if (HasPersistedManualAccountData(accountInfos))
-            {
-                accountInfos.IsCurrent = true;
-                return accountInfos;
-            }
-
             return new AccountInfos { IsCurrent = true };
         }
 
@@ -1301,7 +651,7 @@ namespace CommonPluginsStores
         /// <returns>Collection of owned games and DLC or null</returns>
         private ObservableCollection<GameDlcOwned> LoadGamesDlcsOwned(bool onlyNow = true)
         {
-            return FileDataService.LoadData<ObservableCollection<GameDlcOwned>>(FileGamesDlcsOwned, onlyNow ? 5 : 0);
+            return FileDataTools.LoadData<ObservableCollection<GameDlcOwned>>(FileGamesDlcsOwned, onlyNow ? 5 : 0);
         }
 
         /// <summary>
@@ -1311,7 +661,7 @@ namespace CommonPluginsStores
         /// <returns>True if save was successful, false otherwise</returns>
         private bool SaveGamesDlcsOwned(ObservableCollection<GameDlcOwned> gamesDlcsOwned)
         {
-            return FileDataService.SaveData(FileGamesDlcsOwned, gamesDlcsOwned);
+            return FileDataTools.SaveData(FileGamesDlcsOwned, gamesDlcsOwned);
         }
 
         /// <summary>
@@ -1344,7 +694,7 @@ namespace CommonPluginsStores
             }
             catch (Exception ex)
             {
-                Common.LogError(ex, false, true, PluginName, FormatLogMessage("Failed to check DLC ownership"));
+                Common.LogError(ex, false, true, PluginName);
                 return false;
             }
         }
@@ -1361,7 +711,7 @@ namespace CommonPluginsStores
         {
             LocalDateTimeConverter localDateTimeConverter = new LocalDateTimeConverter();
             string formatedDateLastWrite = localDateTimeConverter.Convert(dateLastWrite, null, null, CultureInfo.CurrentCulture).ToString();
-            LogWarn($"Using saved user data from {formatedDateLastWrite}");
+            Logger.Warn($"Use saved UserData - {formatedDateLastWrite}");
             API.Instance.Notifications.Add(new NotificationMessage(
                 $"{PluginName}-{ClientNameLog}-LoadFileData",
                 $"{PluginName}" + Environment.NewLine
@@ -1381,7 +731,7 @@ namespace CommonPluginsStores
 		public virtual void ShowNotificationUserNoAuthenticate()
         {
             string message = string.Format(ResourceProvider.GetString("LOCCommonStoresNoAuthenticate"), ClientName);
-            LogWarn("User is not authenticated");
+            Logger.Warn($"{ClientName}: User is not authenticated");
 
             API.Instance.Notifications.Add(new NotificationMessage(
                 $"{PluginName}-{ClientName.RemoveWhiteSpace()}-noauthenticate",
@@ -1403,7 +753,7 @@ namespace CommonPluginsStores
                     }
                     catch (Exception ex)
                     {
-                        Common.LogError(ex, false, true, PluginName, FormatLogMessage("Failed to open plugin settings from authentication notification"));
+                        Common.LogError(ex, false, true, PluginName);
                     }
                 }
             ));
@@ -1476,5 +826,25 @@ namespace CommonPluginsStores
             _gamesCache.Clear();
             _dlcsCache.Clear();
         }
+
+
+		private async Task<T> WithRateLimitAsync<T>(Func<Task<T>> apiCall)
+		{
+			await _rateLimiter.WaitAsync();
+			try
+			{
+				var elapsed = (DateTime.Now - _lastApiCall).TotalMilliseconds;
+				if (elapsed < MinApiCallIntervalMs)
+				{
+					await Task.Delay(MinApiCallIntervalMs - (int)elapsed);
+				}
+				_lastApiCall = DateTime.Now;
+				return await apiCall();
+			}
+			finally
+			{
+				_rateLimiter.Release();
+			}
+		}
 	}
 }
